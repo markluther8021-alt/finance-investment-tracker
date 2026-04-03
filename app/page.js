@@ -23,9 +23,9 @@ const addDays = (dateStr, days) => {
 
 const formatCurrency = (value) => {
   const number = Number(value || 0);
-  return number.toLocaleString("en-US", {
+  return number.toLocaleString("en-LK", {
     style: "currency",
-    currency: "USD",
+    currency: "LKR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -52,8 +52,14 @@ export default function Page() {
     createBorrowedInvestor(),
   ]);
 
-  const [editingInvoiceId, setEditingInvoiceId] = useState("");
-  const [editingInvoiceValue, setEditingInvoiceValue] = useState("");
+  const [editModeId, setEditModeId] = useState("");
+  const [editMaturityDate, setEditMaturityDate] = useState("");
+  const [editReinvestmentDate, setEditReinvestmentDate] = useState("");
+
+  const [showReinvestBoxId, setShowReinvestBoxId] = useState("");
+  const [reinvestInvoiceNumber, setReinvestInvoiceNumber] = useState("");
+  const [reinvestInvestmentDate, setReinvestInvestmentDate] = useState("");
+  const [reinvestMaturityDate, setReinvestMaturityDate] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -152,6 +158,11 @@ export default function Page() {
     });
   };
 
+  const clearMessages = () => {
+    setError("");
+    setSuccess("");
+  };
+
   const validateForm = () => {
     if (!invoiceNumber.trim()) return "Invoice number is required";
     if (!investmentName.trim()) return "Investment name is required";
@@ -201,8 +212,7 @@ export default function Page() {
   };
 
   const saveInvestment = () => {
-    setError("");
-    setSuccess("");
+    clearMessages();
 
     const validationError = validateForm();
     if (validationError) {
@@ -247,80 +257,116 @@ export default function Page() {
     setError("");
   };
 
-  const startInvoiceEdit = (investment) => {
-    setEditingInvoiceId(investment.id);
-    setEditingInvoiceValue(investment.invoiceNumber || "");
-    setError("");
-    setSuccess("");
+  const startEditDates = (investment) => {
+    setEditModeId(investment.id);
+    setEditMaturityDate(investment.maturityDate || "");
+    setEditReinvestmentDate(addDays(investment.maturityDate, 10));
+    clearMessages();
   };
 
-  const saveInvoiceEdit = () => {
-    if (!editingInvoiceId) return;
+  const cancelEditDates = () => {
+    setEditModeId("");
+    setEditMaturityDate("");
+    setEditReinvestmentDate("");
+  };
 
-    if (!editingInvoiceValue.trim()) {
-      setError("Invoice number cannot be empty");
+  const saveEditDates = (investment) => {
+    if (!editMaturityDate) {
+      setError("Maturity date is required");
+      return;
+    }
+
+    const investmentStart = new Date(investment.investmentDate);
+    const maturity = new Date(editMaturityDate);
+
+    if (maturity < investmentStart) {
+      setError("Maturity date cannot be before investment date");
       return;
     }
 
     setInvestments((prev) =>
       prev.map((item) =>
-        item.id === editingInvoiceId
-          ? { ...item, invoiceNumber: editingInvoiceValue.trim() }
+        item.id === investment.id
+          ? {
+              ...item,
+              maturityDate: editMaturityDate,
+            }
           : item
       )
     );
 
-    if (selectedInvestmentId === editingInvoiceId) {
-      setSelectedInvestmentId(editingInvoiceId);
+    cancelEditDates();
+    setSuccess("Dates updated successfully");
+    setError("");
+  };
+
+  const openReinvestBox = (investment) => {
+    setShowReinvestBoxId(investment.id);
+    setReinvestInvoiceNumber("");
+    const defaultInvestmentDate = addDays(investment.maturityDate, 10);
+    setReinvestInvestmentDate(defaultInvestmentDate);
+    setReinvestMaturityDate(investment.maturityDate || "");
+    clearMessages();
+  };
+
+  const cancelReinvestBox = () => {
+    setShowReinvestBoxId("");
+    setReinvestInvoiceNumber("");
+    setReinvestInvestmentDate("");
+    setReinvestMaturityDate("");
+  };
+
+  const createReinvestment = (investment) => {
+    if (!reinvestInvoiceNumber.trim()) {
+      setError("New reinvestment invoice number is required");
+      return;
     }
 
-    setEditingInvoiceId("");
-    setEditingInvoiceValue("");
-    setSuccess("Invoice number updated successfully");
-    setError("");
-  };
+    if (!reinvestInvestmentDate) {
+      setError("Reinvestment date is required");
+      return;
+    }
 
-  const cancelInvoiceEdit = () => {
-    setEditingInvoiceId("");
-    setEditingInvoiceValue("");
-    setError("");
-  };
+    if (!reinvestMaturityDate) {
+      setError("Reinvestment maturity date is required");
+      return;
+    }
 
-  const reinvestSelected = () => {
-    if (!selectedInvestment) return;
+    const reinvestStart = new Date(reinvestInvestmentDate);
+    const reinvestEnd = new Date(reinvestMaturityDate);
 
-    const nextInvestmentDate = addDays(selectedInvestment.maturityDate, 10);
+    if (reinvestEnd < reinvestStart) {
+      setError("Reinvestment maturity date cannot be before reinvestment date");
+      return;
+    }
 
     const reinvestment = {
       id: generateId(),
-      invoiceNumber: `${selectedInvestment.invoiceNumber}-R`,
-      investmentName: `${selectedInvestment.investmentName} - Reinvestment`,
-      totalAmount: selectedInvestment.totalAmount,
-      borrowedAmount: selectedInvestment.borrowedAmount,
-      selfInvestedAmount: selectedInvestment.selfInvestedAmount,
-      investmentDate: nextInvestmentDate,
-      maturityDate: selectedInvestment.maturityDate,
-      borrowedInvestors: (selectedInvestment.borrowedInvestors || []).map(
-        (item) => ({
-          ...item,
-          id: generateId(),
-        })
-      ),
+      invoiceNumber: reinvestInvoiceNumber.trim(),
+      investmentName: `${investment.investmentName} - Reinvestment`,
+      totalAmount: investment.totalAmount,
+      borrowedAmount: investment.borrowedAmount,
+      selfInvestedAmount: investment.selfInvestedAmount,
+      investmentDate: reinvestInvestmentDate,
+      maturityDate: reinvestMaturityDate,
+      borrowedInvestors: (investment.borrowedInvestors || []).map((item) => ({
+        ...item,
+        id: generateId(),
+      })),
       status: "active",
-      parentInvestmentId: selectedInvestment.id,
+      parentInvestmentId: investment.id,
     };
 
     setInvestments((prev) => {
       const updated = prev.map((item) =>
-        item.id === selectedInvestment.id
-          ? { ...item, status: "reinvested" }
-          : item
+        item.id === investment.id ? { ...item, status: "reinvested" } : item
       );
       return [reinvestment, ...updated];
     });
 
     setSelectedInvestmentId(reinvestment.id);
-    setSuccess("Reinvestment created successfully. You can edit the invoice number.");
+    cancelReinvestBox();
+    setSuccess("Reinvestment created successfully");
     setError("");
   };
 
@@ -336,7 +382,7 @@ export default function Page() {
           <div className="card">
             <h2 className="section-title">Add New Investment</h2>
             <p className="section-text">
-              Total investment, borrowed amount, self-invested amount, dates, and invoice number.
+              Total investment, borrowed amount, self-invested amount, invoice number, and dates.
             </p>
 
             <div className="form-grid">
@@ -411,23 +457,17 @@ export default function Page() {
             <div className="stats-grid" style={{ marginTop: 20 }}>
               <div className="stat-box">
                 <div className="stat-label">Total Investment</div>
-                <div className="stat-value">
-                  {formatCurrency(totalAmountNumber)}
-                </div>
+                <div className="stat-value">{formatCurrency(totalAmountNumber)}</div>
               </div>
 
               <div className="stat-box">
                 <div className="stat-label">Borrowed Amount</div>
-                <div className="stat-value">
-                  {formatCurrency(borrowedAmountNumber)}
-                </div>
+                <div className="stat-value">{formatCurrency(borrowedAmountNumber)}</div>
               </div>
 
               <div className="stat-box">
                 <div className="stat-label">Self Invested</div>
-                <div className="stat-value">
-                  {formatCurrency(selfInvestedAmount)}
-                </div>
+                <div className="stat-value">{formatCurrency(selfInvestedAmount)}</div>
               </div>
             </div>
 
@@ -457,11 +497,7 @@ export default function Page() {
                       type="text"
                       value={item.name}
                       onChange={(e) =>
-                        handleBorrowedInvestorChange(
-                          item.id,
-                          "name",
-                          e.target.value
-                        )
+                        handleBorrowedInvestorChange(item.id, "name", e.target.value)
                       }
                       placeholder={`Borrowed Investor ${index + 1}`}
                     />
@@ -473,11 +509,7 @@ export default function Page() {
                       type="number"
                       value={item.amount}
                       onChange={(e) =>
-                        handleBorrowedInvestorChange(
-                          item.id,
-                          "amount",
-                          e.target.value
-                        )
+                        handleBorrowedInvestorChange(item.id, "amount", e.target.value)
                       }
                       placeholder="Amount"
                     />
@@ -546,9 +578,7 @@ export default function Page() {
 
               <div className="stat-box">
                 <div className="stat-label">Portfolio Amount</div>
-                <div className="stat-value">
-                  {formatCurrency(totalPortfolioAmount)}
-                </div>
+                <div className="stat-value">{formatCurrency(totalPortfolioAmount)}</div>
               </div>
 
               <div className="stat-box">
@@ -582,10 +612,7 @@ export default function Page() {
               <div className="stat-box">
                 <div className="stat-label">Reinvested</div>
                 <div className="stat-value">
-                  {
-                    investments.filter((item) => item.status === "reinvested")
-                      .length
-                  }
+                  {investments.filter((item) => item.status === "reinvested").length}
                 </div>
               </div>
             </div>
@@ -612,9 +639,6 @@ export default function Page() {
                 >
                   Mark as Matured
                 </button>
-                <button className="btn-dark" type="button" onClick={reinvestSelected}>
-                  Reinvest (+10 days)
-                </button>
               </div>
             )}
           </div>
@@ -625,7 +649,8 @@ export default function Page() {
             investments.map((investment) => {
               const isSelected = investment.id === selectedInvestmentId;
               const reinvestmentStart = addDays(investment.maturityDate, 10);
-              const isEditing = editingInvoiceId === investment.id;
+              const isEditingDates = editModeId === investment.id;
+              const showReinvestBox = showReinvestBoxId === investment.id;
 
               return (
                 <div
@@ -639,63 +664,7 @@ export default function Page() {
                       <div className="badge">{investment.status}</div>
 
                       <div style={{ marginTop: 14, marginBottom: 14 }}>
-                        <strong>Invoice Number:</strong>{" "}
-                        {!isEditing ? (
-                          <>
-                            {investment.invoiceNumber}{" "}
-                            <button
-                              className="btn-light"
-                              type="button"
-                              style={{ marginLeft: 10, padding: "8px 12px" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startInvoiceEdit(investment);
-                              }}
-                            >
-                              Edit Invoice
-                            </button>
-                          </>
-                        ) : (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              marginTop: 10,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <input
-                              type="text"
-                              value={editingInvoiceValue}
-                              onChange={(e) =>
-                                setEditingInvoiceValue(e.target.value)
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                              placeholder="Enter invoice number"
-                              style={{ maxWidth: 260 }}
-                            />
-                            <button
-                              className="btn-dark"
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                saveInvoiceEdit();
-                              }}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn-light"
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelInvoiceEdit();
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
+                        <strong>Invoice Number:</strong> {investment.invoiceNumber}
                       </div>
 
                       <div className="meta-grid">
@@ -712,18 +681,155 @@ export default function Page() {
                           {formatCurrency(investment.selfInvestedAmount)}
                         </div>
                         <div>
-                          <strong>Investment Date:</strong>{" "}
-                          {investment.investmentDate}
+                          <strong>Investment Date:</strong> {investment.investmentDate}
                         </div>
                         <div>
-                          <strong>Maturity Date:</strong>{" "}
-                          {investment.maturityDate}
+                          <strong>Maturity Date:</strong> {investment.maturityDate}
                         </div>
                         <div>
-                          <strong>Reinvestment Start:</strong>{" "}
-                          {reinvestmentStart}
+                          <strong>Reinvestment Start:</strong> {reinvestmentStart}
                         </div>
                       </div>
+
+                      <div
+                        className="btn-row"
+                        style={{ marginTop: 16 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className="btn-light"
+                          type="button"
+                          onClick={() => startEditDates(investment)}
+                        >
+                          Edit Maturity Date
+                        </button>
+
+                        <button
+                          className="btn-dark"
+                          type="button"
+                          onClick={() => openReinvestBox(investment)}
+                        >
+                          Reinvest
+                        </button>
+                      </div>
+
+                      {isEditingDates && (
+                        <div className="note-box" style={{ marginTop: 16 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 12,
+                              flexWrap: "wrap",
+                              alignItems: "end",
+                            }}
+                          >
+                            <div>
+                              <label>Maturity Date</label>
+                              <input
+                                type="date"
+                                value={editMaturityDate}
+                                onChange={(e) => setEditMaturityDate(e.target.value)}
+                                style={{ maxWidth: 220 }}
+                              />
+                            </div>
+
+                            <div>
+                              <label>Reinvestment Start (Preview)</label>
+                              <input
+                                type="date"
+                                value={editReinvestmentDate}
+                                onChange={(e) =>
+                                  setEditReinvestmentDate(e.target.value)
+                                }
+                                style={{ maxWidth: 220 }}
+                                readOnly
+                              />
+                            </div>
+
+                            <button
+                              className="btn-dark"
+                              type="button"
+                              onClick={() => saveEditDates(investment)}
+                            >
+                              Save Dates
+                            </button>
+
+                            <button
+                              className="btn-light"
+                              type="button"
+                              onClick={cancelEditDates}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {showReinvestBox && (
+                        <div className="note-box" style={{ marginTop: 16 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 12,
+                              flexWrap: "wrap",
+                              alignItems: "end",
+                            }}
+                          >
+                            <div>
+                              <label>New Reinvestment Invoice No</label>
+                              <input
+                                type="text"
+                                value={reinvestInvoiceNumber}
+                                onChange={(e) =>
+                                  setReinvestInvoiceNumber(e.target.value)
+                                }
+                                placeholder="Enter new invoice number"
+                                style={{ maxWidth: 220 }}
+                              />
+                            </div>
+
+                            <div>
+                              <label>Reinvestment Date</label>
+                              <input
+                                type="date"
+                                value={reinvestInvestmentDate}
+                                onChange={(e) =>
+                                  setReinvestInvestmentDate(e.target.value)
+                                }
+                                style={{ maxWidth: 220 }}
+                              />
+                            </div>
+
+                            <div>
+                              <label>New Maturity Date</label>
+                              <input
+                                type="date"
+                                value={reinvestMaturityDate}
+                                onChange={(e) =>
+                                  setReinvestMaturityDate(e.target.value)
+                                }
+                                style={{ maxWidth: 220 }}
+                              />
+                            </div>
+
+                            <button
+                              className="btn-dark"
+                              type="button"
+                              onClick={() => createReinvestment(investment)}
+                            >
+                              Create Reinvestment
+                            </button>
+
+                            <button
+                              className="btn-light"
+                              type="button"
+                              onClick={cancelReinvestBox}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {investment.parentInvestmentId && (
                         <div className="note-box">
@@ -769,4 +875,3 @@ export default function Page() {
       </div>
     </main>
   );
-}
