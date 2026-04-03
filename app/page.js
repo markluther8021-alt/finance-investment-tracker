@@ -2,101 +2,70 @@
 
 import { useMemo, useState } from "react";
 
-type InvestorType = "own" | "borrowed";
-type InvestmentStatus = "active" | "matured" | "reinvested";
-
-type Investor = {
-  id: string;
-  name: string;
-  amount: number;
-  type: InvestorType;
-};
-
-type Investment = {
-  id: string;
-  investmentName: string;
-  totalAmount: number;
-  investmentDate: string;
-  maturityDate: string;
-  investors: Investor[];
-  status: InvestmentStatus;
-  parentInvestmentId?: string;
-};
-
 const generateId = () => Math.random().toString(36).slice(2, 10);
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr) => {
   if (!dateStr) return "";
   const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return dateStr;
+  if (Number.isNaN(date.getTime())) return "";
   return date.toISOString().split("T")[0];
 };
 
-const addDays = (dateStr: string, days: number) => {
+const addDays = (dateStr, days) => {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
   date.setDate(date.getDate() + days);
-  return formatDate(date.toISOString());
+  return formatDate(date);
 };
 
-const sumInvestorAmount = (investors: Investor[]) =>
-  investors.reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
-
-const sumBorrowedAmount = (investors: Investor[]) =>
-  investors
-    .filter((investor) => investor.type === "borrowed")
-    .reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
+const createEmptyInvestor = () => ({
+  id: generateId(),
+  name: "",
+  amount: "",
+  type: "own",
+});
 
 export default function Page() {
-  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [investments, setInvestments] = useState([]);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
 
   const [investmentName, setInvestmentName] = useState("");
-  const [totalAmount, setTotalAmount] = useState<number | "">("");
+  const [totalAmount, setTotalAmount] = useState("");
   const [investmentDate, setInvestmentDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
 
-  const [investors, setInvestors] = useState<Investor[]>([
-    {
-      id: generateId(),
-      name: "",
-      amount: 0,
-      type: "own",
-    },
-  ]);
+  const [investors, setInvestors] = useState([createEmptyInvestor()]);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const investorTotal = useMemo(() => sumInvestorAmount(investors), [investors]);
-  const borrowedTotal = useMemo(() => sumBorrowedAmount(investors), [investors]);
+  const investorTotal = useMemo(() => {
+    return investors.reduce((sum, investor) => {
+      return sum + Number(investor.amount || 0);
+    }, 0);
+  }, [investors]);
 
-  const selectedInvestment = useMemo(
-    () => investments.find((item) => item.id === selectedInvestmentId),
-    [investments, selectedInvestmentId]
-  );
+  const borrowedTotal = useMemo(() => {
+    return investors
+      .filter((investor) => investor.type === "borrowed")
+      .reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
+  }, [investors]);
+
+  const selectedInvestment = useMemo(() => {
+    if (!selectedInvestmentId) return null;
+    return investments.find((item) => item.id === selectedInvestmentId) || null;
+  }, [investments, selectedInvestmentId]);
 
   const resetForm = () => {
     setInvestmentName("");
     setTotalAmount("");
     setInvestmentDate("");
     setMaturityDate("");
-    setInvestors([
-      {
-        id: generateId(),
-        name: "",
-        amount: 0,
-        type: "own",
-      },
-    ]);
+    setInvestors([createEmptyInvestor()]);
   };
 
-  const handleInvestorChange = (
-    id: string,
-    field: keyof Investor,
-    value: string | number
-  ) => {
+  const handleInvestorChange = (id, field, value) => {
     setInvestors((prev) =>
       prev.map((investor) =>
         investor.id === id ? { ...investor, [field]: value } : investor
@@ -105,41 +74,38 @@ export default function Page() {
   };
 
   const addInvestor = () => {
-    setInvestors((prev) => [
-      ...prev,
-      {
-        id: generateId(),
-        name: "",
-        amount: 0,
-        type: "own",
-      },
-    ]);
+    setInvestors((prev) => [...prev, createEmptyInvestor()]);
   };
 
-  const removeInvestor = (id: string) => {
+  const removeInvestor = (id) => {
     setInvestors((prev) => {
       if (prev.length === 1) return prev;
       return prev.filter((investor) => investor.id !== id);
     });
   };
 
-  const validateInvestment = () => {
+  const validateForm = () => {
     if (!investmentName.trim()) return "Investment name is required";
-    if (totalAmount === "" || Number(totalAmount) <= 0) {
+    if (!totalAmount || Number(totalAmount) <= 0) {
       return "Total investment amount must be greater than 0";
     }
     if (!investmentDate) return "Investment date is required";
     if (!maturityDate) return "Maturity date is required";
 
-    const investmentStart = new Date(investmentDate);
-    const investmentEnd = new Date(maturityDate);
+    const start = new Date(investmentDate);
+    const end = new Date(maturityDate);
 
-    if (investmentEnd < investmentStart) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return "Please enter valid dates";
+    }
+
+    if (end < start) {
       return "Maturity date cannot be before investment date";
     }
 
     const hasInvalidInvestor = investors.some(
-      (investor) => !investor.name.trim() || Number(investor.amount) <= 0
+      (investor) =>
+        !investor.name.trim() || !investor.amount || Number(investor.amount) <= 0
     );
 
     if (hasInvalidInvestor) {
@@ -163,13 +129,13 @@ export default function Page() {
     setError("");
     setSuccess("");
 
-    const validationError = validateInvestment();
+    const validationError = validateForm();
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const newInvestment: Investment = {
+    const newInvestment = {
       id: generateId(),
       investmentName: investmentName.trim(),
       totalAmount: Number(totalAmount),
@@ -181,6 +147,7 @@ export default function Page() {
         amount: Number(investor.amount),
       })),
       status: "active",
+      parentInvestmentId: null,
     };
 
     setInvestments((prev) => [newInvestment, ...prev]);
@@ -189,15 +156,17 @@ export default function Page() {
     setSuccess("Investment saved successfully");
   };
 
-  const markAsMatured = (investmentId: string) => {
+  const markAsMatured = (investmentId) => {
     setInvestments((prev) =>
       prev.map((item) =>
         item.id === investmentId ? { ...item, status: "matured" } : item
       )
     );
+    setSuccess("Investment marked as matured");
+    setError("");
   };
 
-  const reinvestSelectedInvestment = () => {
+  const reinvestSelected = () => {
     if (!selectedInvestment) return;
 
     const nextInvestmentDate = addDays(selectedInvestment.maturityDate, 10);
@@ -207,14 +176,12 @@ export default function Page() {
       return;
     }
 
-    const newMaturityDate = selectedInvestment.maturityDate;
-
-    const reinvestment: Investment = {
+    const reinvestment = {
       id: generateId(),
       investmentName: `${selectedInvestment.investmentName} - Reinvestment`,
       totalAmount: selectedInvestment.totalAmount,
       investmentDate: nextInvestmentDate,
-      maturityDate: newMaturityDate,
+      maturityDate: selectedInvestment.maturityDate,
       investors: selectedInvestment.investors.map((investor) => ({
         ...investor,
         id: generateId(),
@@ -226,7 +193,7 @@ export default function Page() {
     setInvestments((prev) => {
       const updated = prev.map((item) =>
         item.id === selectedInvestment.id
-          ? { ...item, status: "reinvested" as InvestmentStatus }
+          ? { ...item, status: "reinvested" }
           : item
       );
       return [reinvestment, ...updated];
@@ -237,28 +204,37 @@ export default function Page() {
     setError("");
   };
 
+  const totalPortfolioAmount = useMemo(() => {
+    return investments.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
+  }, [investments]);
+
   return (
-    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm border">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+    <main className="min-h-screen bg-slate-100 p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
             Finance Investment Tracker
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-slate-600">
             Module 1 - Investment Management
           </p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2">
-            <div className="rounded-2xl bg-white p-6 shadow-sm border">
-              <h2 className="text-xl font-semibold text-gray-900 mb-5">
-                Add New Investment
-              </h2>
+            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Add New Investment
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add investment details, investors, borrowed amount, and dates.
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     Investment Name
                   </label>
                   <input
@@ -266,61 +242,63 @@ export default function Page() {
                     value={investmentName}
                     onChange={(e) => setInvestmentName(e.target.value)}
                     placeholder="Enter investment name"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     Total Investment Amount
                   </label>
                   <input
                     type="number"
                     value={totalAmount}
-                    onChange={(e) =>
-                      setTotalAmount(
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
-                    }
+                    onChange={(e) => setTotalAmount(e.target.value)}
                     placeholder="Enter total amount"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     Investment Date
                   </label>
                   <input
                     type="date"
                     value={investmentDate}
                     onChange={(e) => setInvestmentDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
                     Maturity Date
                   </label>
                   <input
                     type="date"
                     value={maturityDate}
                     onChange={(e) => setMaturityDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-gray-200 p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Investors
-                  </h3>
+              <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Investors
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Add own or borrowed investors inside the investment form.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
                     onClick={addInvestor}
-                    className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                    className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
                   >
                     + Add Investor
                   </button>
@@ -330,10 +308,10 @@ export default function Page() {
                   {investors.map((investor, index) => (
                     <div
                       key={investor.id}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-xl border border-gray-200 p-4"
+                      className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-2xl border border-slate-200 bg-white p-4"
                     >
                       <div className="md:col-span-4">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
                           Investor Name
                         </label>
                         <input
@@ -347,31 +325,31 @@ export default function Page() {
                             )
                           }
                           placeholder={`Investor ${index + 1}`}
-                          className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                         />
                       </div>
 
                       <div className="md:col-span-3">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
                           Amount
                         </label>
                         <input
                           type="number"
-                          value={investor.amount || ""}
+                          value={investor.amount}
                           onChange={(e) =>
                             handleInvestorChange(
                               investor.id,
                               "amount",
-                              Number(e.target.value)
+                              e.target.value
                             )
                           }
                           placeholder="Amount"
-                          className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                         />
                       </div>
 
                       <div className="md:col-span-3">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
                           Type
                         </label>
                         <select
@@ -380,10 +358,10 @@ export default function Page() {
                             handleInvestorChange(
                               investor.id,
                               "type",
-                              e.target.value as InvestorType
+                              e.target.value
                             )
                           }
-                          className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                         >
                           <option value="own">Own</option>
                           <option value="borrowed">Borrowed</option>
@@ -391,14 +369,14 @@ export default function Page() {
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
                           Action
                         </label>
                         <button
                           type="button"
                           onClick={() => removeInvestor(investor.id)}
                           disabled={investors.length === 1}
-                          className="w-full rounded-xl border px-4 py-3 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-medium hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Remove
                         </button>
@@ -408,16 +386,16 @@ export default function Page() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-gray-50 p-4 border">
-                    <p className="text-sm text-gray-600">Total from Investors</p>
-                    <p className="mt-1 text-xl font-bold text-gray-900">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Total from Investors</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">
                       {investorTotal}
                     </p>
                   </div>
 
-                  <div className="rounded-xl bg-gray-50 p-4 border">
-                    <p className="text-sm text-gray-600">Borrowed Amount</p>
-                    <p className="mt-1 text-xl font-bold text-gray-900">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Borrowed Amount</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">
                       {borrowedTotal}
                     </p>
                   </div>
@@ -425,13 +403,13 @@ export default function Page() {
               </div>
 
               {error && (
-                <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {success}
                 </div>
               )}
@@ -440,7 +418,7 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={saveInvestment}
-                  className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
                 >
                   Save Investment
                 </button>
@@ -448,7 +426,7 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-gray-50"
+                  className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50"
                 >
                   Clear Form
                 </button>
@@ -457,35 +435,47 @@ export default function Page() {
           </div>
 
           <div className="xl:col-span-1">
-            <div className="rounded-2xl bg-white p-6 shadow-sm border">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Investment Summary
+            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">
+                Dashboard
               </h2>
 
               <div className="space-y-3">
-                <div className="rounded-xl bg-gray-50 border p-4">
-                  <p className="text-sm text-gray-600">Total Investments</p>
-                  <p className="mt-1 text-2xl font-bold">{investments.length}</p>
-                </div>
-
-                <div className="rounded-xl bg-gray-50 border p-4">
-                  <p className="text-sm text-gray-600">Active</p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {investments.filter((i) => i.status === "active").length}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Total Investments</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {investments.length}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 border p-4">
-                  <p className="text-sm text-gray-600">Matured</p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {investments.filter((i) => i.status === "matured").length}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Portfolio Amount</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {totalPortfolioAmount}
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-gray-50 border p-4">
-                  <p className="text-sm text-gray-600">Reinvested</p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {investments.filter((i) => i.status === "reinvested").length}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Active</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {investments.filter((item) => item.status === "active").length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Matured</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {investments.filter((item) => item.status === "matured").length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Reinvested</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {
+                      investments.filter((item) => item.status === "reinvested")
+                        .length
+                    }
                   </p>
                 </div>
               </div>
@@ -493,26 +483,31 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm border">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Investment List
-            </h2>
+        <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Investment List
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Select one investment to view and create reinvestment.
+              </p>
+            </div>
 
             {selectedInvestment && (
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => markAsMatured(selectedInvestment.id)}
-                  className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
                 >
                   Mark as Matured
                 </button>
 
                 <button
                   type="button"
-                  onClick={reinvestSelectedInvestment}
-                  className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                  onClick={reinvestSelected}
+                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
                 >
                   Reinvest (+10 days)
                 </button>
@@ -521,95 +516,97 @@ export default function Page() {
           </div>
 
           {investments.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-8 text-center text-gray-500">
+            <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
               No investments added yet
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-4">
               {investments.map((investment) => {
-                const isSelected = selectedInvestmentId === investment.id;
-                const nextReinvestmentDate = addDays(investment.maturityDate, 10);
+                const isSelected = investment.id === selectedInvestmentId;
+                const reinvestmentStart = addDays(investment.maturityDate, 10);
 
                 return (
                   <div
                     key={investment.id}
                     onClick={() => setSelectedInvestmentId(investment.id)}
-                    className={`cursor-pointer rounded-2xl border p-5 transition ${
+                    className={`cursor-pointer rounded-3xl border p-5 transition ${
                       isSelected
-                        ? "border-black bg-gray-50"
-                        : "border-gray-200 bg-white hover:bg-gray-50"
+                        ? "border-slate-900 bg-slate-50"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
                     }`}
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {investment.investmentName}
-                        </h3>
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-lg font-semibold text-slate-900">
+                            {investment.investmentName}
+                          </h3>
+                          <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+                            {investment.status}
+                          </span>
+                        </div>
 
-                        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
                           <p>
-                            <span className="font-medium text-gray-800">
-                              Total:
+                            <span className="font-semibold text-slate-800">
+                              Total Amount:
                             </span>{" "}
                             {investment.totalAmount}
                           </p>
                           <p>
-                            <span className="font-medium text-gray-800">
-                              Status:
-                            </span>{" "}
-                            {investment.status}
-                          </p>
-                          <p>
-                            <span className="font-medium text-gray-800">
+                            <span className="font-semibold text-slate-800">
                               Investment Date:
                             </span>{" "}
                             {investment.investmentDate}
                           </p>
                           <p>
-                            <span className="font-medium text-gray-800">
+                            <span className="font-semibold text-slate-800">
                               Maturity Date:
                             </span>{" "}
                             {investment.maturityDate}
                           </p>
-                          <p className="md:col-span-2">
-                            <span className="font-medium text-gray-800">
+                          <p>
+                            <span className="font-semibold text-slate-800">
                               Reinvestment Start:
                             </span>{" "}
-                            {nextReinvestmentDate}
+                            {reinvestmentStart}
                           </p>
                         </div>
+
+                        {investment.parentInvestmentId && (
+                          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            This is a reinvestment record
+                          </div>
+                        )}
                       </div>
 
-                      <div className="min-w-[220px] rounded-xl border bg-white p-4">
-                        <p className="text-sm font-semibold text-gray-800 mb-3">
+                      <div className="w-full lg:w-80 rounded-2xl border border-slate-200 bg-white p-4">
+                        <p className="mb-3 text-sm font-semibold text-slate-800">
                           Investors
                         </p>
+
                         <div className="space-y-2">
-                          {investment.investors.map((inv) => (
+                          {investment.investors.map((investor) => (
                             <div
-                              key={inv.id}
-                              className="flex items-center justify-between text-sm"
+                              key={investor.id}
+                              className="flex items-center justify-between gap-3 text-sm"
                             >
                               <div>
-                                <span className="font-medium text-gray-800">
-                                  {inv.name}
+                                <span className="font-medium text-slate-900">
+                                  {investor.name}
                                 </span>
-                                <span className="ml-2 text-gray-500">
-                                  ({inv.type})
+                                <span className="ml-2 text-slate-500">
+                                  ({investor.type})
                                 </span>
                               </div>
-                              <span className="font-medium">{inv.amount}</span>
+                              <span className="font-semibold text-slate-800">
+                                {investor.amount}
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     </div>
-
-                    {investment.parentInvestmentId && (
-                      <div className="mt-4 rounded-xl bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800">
-                        This is a reinvestment record
-                      </div>
-                    )}
                   </div>
                 );
               })}
