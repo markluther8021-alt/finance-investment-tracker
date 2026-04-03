@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const STORAGE_KEY = "finance-investment-tracker-module-1";
 
 const generateId = () => Math.random().toString(36).slice(2, 10);
 
@@ -19,33 +21,80 @@ const addDays = (dateStr, days) => {
   return formatDate(date);
 };
 
-const createEmptyInvestor = () => ({
+const formatCurrency = (value) => {
+  const number = Number(value || 0);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const createBorrowedInvestor = () => ({
   id: generateId(),
   name: "",
   amount: "",
-  type: "own",
 });
 
 export default function Page() {
   const [investments, setInvestments] = useState([]);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
+
   const [investmentName, setInvestmentName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
+  const [borrowedAmount, setBorrowedAmount] = useState("");
   const [investmentDate, setInvestmentDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
-  const [investors, setInvestors] = useState([createEmptyInvestor()]);
+
+  const [borrowedInvestors, setBorrowedInvestors] = useState([
+    createBorrowedInvestor(),
+  ]);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
-  const investorTotal = useMemo(() => {
-    return investors.reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
-  }, [investors]);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setInvestments(parsed.investments || []);
+        setSelectedInvestmentId(parsed.selectedInvestmentId || "");
+      }
+    } catch (err) {
+      console.error("Failed to load saved data", err);
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
 
-  const borrowedTotal = useMemo(() => {
-    return investors
-      .filter((investor) => investor.type === "borrowed")
-      .reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
-  }, [investors]);
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        investments,
+        selectedInvestmentId,
+      })
+    );
+  }, [investments, selectedInvestmentId, loaded]);
+
+  const borrowedAmountNumber = Number(borrowedAmount || 0);
+  const totalAmountNumber = Number(totalAmount || 0);
+
+  const selfInvestedAmount = useMemo(() => {
+    const result = totalAmountNumber - borrowedAmountNumber;
+    return result >= 0 ? result : 0;
+  }, [totalAmountNumber, borrowedAmountNumber]);
+
+  const borrowedInvestorTotal = useMemo(() => {
+    return borrowedInvestors.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
+  }, [borrowedInvestors]);
 
   const selectedInvestment = useMemo(() => {
     return investments.find((item) => item.id === selectedInvestmentId) || null;
@@ -58,27 +107,26 @@ export default function Page() {
   const resetForm = () => {
     setInvestmentName("");
     setTotalAmount("");
+    setBorrowedAmount("");
     setInvestmentDate("");
     setMaturityDate("");
-    setInvestors([createEmptyInvestor()]);
+    setBorrowedInvestors([createBorrowedInvestor()]);
   };
 
-  const handleInvestorChange = (id, field, value) => {
-    setInvestors((prev) =>
-      prev.map((investor) =>
-        investor.id === id ? { ...investor, [field]: value } : investor
-      )
+  const handleBorrowedInvestorChange = (id, field, value) => {
+    setBorrowedInvestors((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
     );
   };
 
-  const addInvestor = () => {
-    setInvestors((prev) => [...prev, createEmptyInvestor()]);
+  const addBorrowedInvestor = () => {
+    setBorrowedInvestors((prev) => [...prev, createBorrowedInvestor()]);
   };
 
-  const removeInvestor = (id) => {
-    setInvestors((prev) => {
+  const removeBorrowedInvestor = (id) => {
+    setBorrowedInvestors((prev) => {
       if (prev.length === 1) return prev;
-      return prev.filter((investor) => investor.id !== id);
+      return prev.filter((item) => item.id !== id);
     });
   };
 
@@ -86,6 +134,12 @@ export default function Page() {
     if (!investmentName.trim()) return "Investment name is required";
     if (!totalAmount || Number(totalAmount) <= 0) {
       return "Total investment amount must be greater than 0";
+    }
+    if (Number(borrowedAmount || 0) < 0) {
+      return "Borrowed amount cannot be negative";
+    }
+    if (borrowedAmountNumber > totalAmountNumber) {
+      return "Borrowed amount cannot exceed total investment";
     }
     if (!investmentDate) return "Investment date is required";
     if (!maturityDate) return "Maturity date is required";
@@ -95,21 +149,25 @@ export default function Page() {
 
     if (end < start) return "Maturity date cannot be before investment date";
 
-    const hasInvalidInvestor = investors.some(
-      (investor) =>
-        !investor.name.trim() || !investor.amount || Number(investor.amount) <= 0
-    );
+    const hasBorrowedNamesOrAmounts =
+      borrowedAmountNumber > 0 ||
+      borrowedInvestors.some((item) => item.name.trim() || item.amount);
 
-    if (hasInvalidInvestor) {
-      return "Each investor must have a name and amount greater than 0";
-    }
+    if (hasBorrowedNamesOrAmounts) {
+      const hasInvalidBorrowedInvestor = borrowedInvestors.some(
+        (item) =>
+          !item.name.trim() || !item.amount || Number(item.amount) <= 0
+      );
 
-    if (investorTotal !== Number(totalAmount)) {
-      return `Investor total (${investorTotal}) must equal total investment (${Number(totalAmount)})`;
-    }
+      if (borrowedAmountNumber > 0 && hasInvalidBorrowedInvestor) {
+        return "Each borrowed investor must have a name and amount greater than 0";
+      }
 
-    if (borrowedTotal > Number(totalAmount)) {
-      return "Borrowed amount cannot exceed total investment";
+      if (borrowedAmountNumber > 0 && borrowedInvestorTotal !== borrowedAmountNumber) {
+        return `Borrowed investor total (${formatCurrency(
+          borrowedInvestorTotal
+        )}) must equal borrowed amount (${formatCurrency(borrowedAmountNumber)})`;
+      }
     }
 
     return "";
@@ -128,14 +186,19 @@ export default function Page() {
     const newInvestment = {
       id: generateId(),
       investmentName: investmentName.trim(),
-      totalAmount: Number(totalAmount),
+      totalAmount: totalAmountNumber,
+      borrowedAmount: borrowedAmountNumber,
+      selfInvestedAmount,
       investmentDate,
       maturityDate,
-      investors: investors.map((investor) => ({
-        ...investor,
-        name: investor.name.trim(),
-        amount: Number(investor.amount),
-      })),
+      borrowedInvestors:
+        borrowedAmountNumber > 0
+          ? borrowedInvestors.map((item) => ({
+              ...item,
+              name: item.name.trim(),
+              amount: Number(item.amount),
+            }))
+          : [],
       status: "active",
       parentInvestmentId: null,
     };
@@ -165,10 +228,12 @@ export default function Page() {
       id: generateId(),
       investmentName: `${selectedInvestment.investmentName} - Reinvestment`,
       totalAmount: selectedInvestment.totalAmount,
+      borrowedAmount: selectedInvestment.borrowedAmount,
+      selfInvestedAmount: selectedInvestment.selfInvestedAmount,
       investmentDate: nextInvestmentDate,
       maturityDate: selectedInvestment.maturityDate,
-      investors: selectedInvestment.investors.map((investor) => ({
-        ...investor,
+      borrowedInvestors: (selectedInvestment.borrowedInvestors || []).map((item) => ({
+        ...item,
         id: generateId(),
       })),
       status: "active",
@@ -199,7 +264,7 @@ export default function Page() {
           <div className="card">
             <h2 className="section-title">Add New Investment</h2>
             <p className="section-text">
-              Add investment details, investors, borrowed amount, and dates.
+              Total investment, borrowed amount, and self-invested amount are handled here.
             </p>
 
             <div className="form-grid">
@@ -224,6 +289,21 @@ export default function Page() {
               </div>
 
               <div>
+                <label>Borrowed Amount</label>
+                <input
+                  type="number"
+                  value={borrowedAmount}
+                  onChange={(e) => setBorrowedAmount(e.target.value)}
+                  placeholder="Enter borrowed amount"
+                />
+              </div>
+
+              <div>
+                <label>Self Invested Amount (Auto)</label>
+                <input type="text" value={formatCurrency(selfInvestedAmount)} readOnly />
+              </div>
+
+              <div>
                 <label>Investment Date</label>
                 <input
                   type="date"
@@ -242,31 +322,48 @@ export default function Page() {
               </div>
             </div>
 
+            <div className="stats-grid" style={{ marginTop: 20 }}>
+              <div className="stat-box">
+                <div className="stat-label">Total Investment</div>
+                <div className="stat-value">{formatCurrency(totalAmountNumber)}</div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Borrowed Amount</div>
+                <div className="stat-value">{formatCurrency(borrowedAmountNumber)}</div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Self Invested</div>
+                <div className="stat-value">{formatCurrency(selfInvestedAmount)}</div>
+              </div>
+            </div>
+
             <div className="investor-box">
               <div className="investor-head">
                 <div>
-                  <h3 style={{ margin: 0 }}>Investors</h3>
+                  <h3 style={{ margin: 0 }}>Borrowed Investors</h3>
                   <p className="section-text" style={{ margin: "6px 0 0" }}>
-                    Add own or borrowed investors inside the investment form.
+                    Only fill these if there is a borrowed amount.
                   </p>
                 </div>
 
-                <button className="btn-light" type="button" onClick={addInvestor}>
-                  + Add Investor
+                <button className="btn-light" type="button" onClick={addBorrowedInvestor}>
+                  + Add Borrowed Investor
                 </button>
               </div>
 
-              {investors.map((investor, index) => (
-                <div className="investor-item" key={investor.id}>
+              {borrowedInvestors.map((item, index) => (
+                <div className="investor-item" key={item.id}>
                   <div>
-                    <label>Investor Name</label>
+                    <label>Borrowed Investor Name</label>
                     <input
                       type="text"
-                      value={investor.name}
+                      value={item.name}
                       onChange={(e) =>
-                        handleInvestorChange(investor.id, "name", e.target.value)
+                        handleBorrowedInvestorChange(item.id, "name", e.target.value)
                       }
-                      placeholder={`Investor ${index + 1}`}
+                      placeholder={`Borrowed Investor ${index + 1}`}
                     />
                   </div>
 
@@ -274,25 +371,17 @@ export default function Page() {
                     <label>Amount</label>
                     <input
                       type="number"
-                      value={investor.amount}
+                      value={item.amount}
                       onChange={(e) =>
-                        handleInvestorChange(investor.id, "amount", e.target.value)
+                        handleBorrowedInvestorChange(item.id, "amount", e.target.value)
                       }
                       placeholder="Amount"
                     />
                   </div>
 
                   <div>
-                    <label>Type</label>
-                    <select
-                      value={investor.type}
-                      onChange={(e) =>
-                        handleInvestorChange(investor.id, "type", e.target.value)
-                      }
-                    >
-                      <option value="own">Own</option>
-                      <option value="borrowed">Borrowed</option>
-                    </select>
+                    <label>Total Borrowed Entered</label>
+                    <input type="text" value={formatCurrency(borrowedInvestorTotal)} readOnly />
                   </div>
 
                   <div>
@@ -300,7 +389,7 @@ export default function Page() {
                     <button
                       className="btn-light"
                       type="button"
-                      onClick={() => removeInvestor(investor.id)}
+                      onClick={() => removeBorrowedInvestor(item.id)}
                     >
                       Remove
                     </button>
@@ -310,13 +399,13 @@ export default function Page() {
 
               <div className="stats-grid">
                 <div className="stat-box">
-                  <div className="stat-label">Total from Investors</div>
-                  <div className="stat-value">{investorTotal}</div>
+                  <div className="stat-label">Borrowed Investor Total</div>
+                  <div className="stat-value">{formatCurrency(borrowedInvestorTotal)}</div>
                 </div>
 
                 <div className="stat-box">
-                  <div className="stat-label">Borrowed Amount</div>
-                  <div className="stat-value">{borrowedTotal}</div>
+                  <div className="stat-label">Borrowed Amount Target</div>
+                  <div className="stat-value">{formatCurrency(borrowedAmountNumber)}</div>
                 </div>
               </div>
             </div>
@@ -345,7 +434,7 @@ export default function Page() {
 
               <div className="stat-box">
                 <div className="stat-label">Portfolio Amount</div>
-                <div className="stat-value">{totalPortfolioAmount}</div>
+                <div className="stat-value">{formatCurrency(totalPortfolioAmount)}</div>
               </div>
 
               <div className="stat-box">
@@ -379,7 +468,7 @@ export default function Page() {
                 Investment List
               </h2>
               <p className="section-text" style={{ margin: 0 }}>
-                Select one investment to view and create reinvestment.
+                Data auto-saves after every change.
               </p>
             </div>
 
@@ -419,7 +508,13 @@ export default function Page() {
 
                       <div className="meta-grid">
                         <div>
-                          <strong>Total Amount:</strong> {investment.totalAmount}
+                          <strong>Total Amount:</strong> {formatCurrency(investment.totalAmount)}
+                        </div>
+                        <div>
+                          <strong>Borrowed Amount:</strong> {formatCurrency(investment.borrowedAmount)}
+                        </div>
+                        <div>
+                          <strong>Self Invested:</strong> {formatCurrency(investment.selfInvestedAmount)}
                         </div>
                         <div>
                           <strong>Investment Date:</strong> {investment.investmentDate}
@@ -438,25 +533,31 @@ export default function Page() {
                     </div>
 
                     <div className="investor-summary">
-                      <strong>Investors</strong>
+                      <strong>Borrowed Investors</strong>
                       <div style={{ marginTop: 12 }}>
-                        {investment.investors.map((investor) => (
-                          <div
-                            key={investor.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              marginBottom: 10,
-                              fontSize: 14,
-                            }}
-                          >
-                            <div>
-                              <strong>{investor.name}</strong> ({investor.type})
-                            </div>
-                            <div>{investor.amount}</div>
+                        {(investment.borrowedInvestors || []).length === 0 ? (
+                          <div style={{ fontSize: 14, color: "#64748b" }}>
+                            No borrowed investors
                           </div>
-                        ))}
+                        ) : (
+                          investment.borrowedInvestors.map((item) => (
+                            <div
+                              key={item.id}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                marginBottom: 10,
+                                fontSize: 14,
+                              }}
+                            >
+                              <div>
+                                <strong>{item.name}</strong>
+                              </div>
+                              <div>{formatCurrency(item.amount)}</div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
