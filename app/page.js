@@ -41,6 +41,7 @@ export default function Page() {
   const [investments, setInvestments] = useState([]);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
 
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [investmentName, setInvestmentName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [borrowedAmount, setBorrowedAmount] = useState("");
@@ -50,6 +51,9 @@ export default function Page() {
   const [borrowedInvestors, setBorrowedInvestors] = useState([
     createBorrowedInvestor(),
   ]);
+
+  const [editingInvoiceId, setEditingInvoiceId] = useState("");
+  const [editingInvoiceValue, setEditingInvoiceValue] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -101,10 +105,28 @@ export default function Page() {
   }, [investments, selectedInvestmentId]);
 
   const totalPortfolioAmount = useMemo(() => {
-    return investments.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
+    return investments.reduce(
+      (sum, item) => sum + Number(item.totalAmount || 0),
+      0
+    );
+  }, [investments]);
+
+  const totalBorrowedPortfolioAmount = useMemo(() => {
+    return investments.reduce(
+      (sum, item) => sum + Number(item.borrowedAmount || 0),
+      0
+    );
+  }, [investments]);
+
+  const totalSelfInvestedPortfolioAmount = useMemo(() => {
+    return investments.reduce(
+      (sum, item) => sum + Number(item.selfInvestedAmount || 0),
+      0
+    );
   }, [investments]);
 
   const resetForm = () => {
+    setInvoiceNumber("");
     setInvestmentName("");
     setTotalAmount("");
     setBorrowedAmount("");
@@ -131,6 +153,7 @@ export default function Page() {
   };
 
   const validateForm = () => {
+    if (!invoiceNumber.trim()) return "Invoice number is required";
     if (!investmentName.trim()) return "Investment name is required";
     if (!totalAmount || Number(totalAmount) <= 0) {
       return "Total investment amount must be greater than 0";
@@ -155,18 +178,22 @@ export default function Page() {
 
     if (hasBorrowedNamesOrAmounts) {
       const hasInvalidBorrowedInvestor = borrowedInvestors.some(
-        (item) =>
-          !item.name.trim() || !item.amount || Number(item.amount) <= 0
+        (item) => !item.name.trim() || !item.amount || Number(item.amount) <= 0
       );
 
       if (borrowedAmountNumber > 0 && hasInvalidBorrowedInvestor) {
         return "Each borrowed investor must have a name and amount greater than 0";
       }
 
-      if (borrowedAmountNumber > 0 && borrowedInvestorTotal !== borrowedAmountNumber) {
+      if (
+        borrowedAmountNumber > 0 &&
+        borrowedInvestorTotal !== borrowedAmountNumber
+      ) {
         return `Borrowed investor total (${formatCurrency(
           borrowedInvestorTotal
-        )}) must equal borrowed amount (${formatCurrency(borrowedAmountNumber)})`;
+        )}) must equal borrowed amount (${formatCurrency(
+          borrowedAmountNumber
+        )})`;
       }
     }
 
@@ -185,6 +212,7 @@ export default function Page() {
 
     const newInvestment = {
       id: generateId(),
+      invoiceNumber: invoiceNumber.trim(),
       investmentName: investmentName.trim(),
       totalAmount: totalAmountNumber,
       borrowedAmount: borrowedAmountNumber,
@@ -219,6 +247,45 @@ export default function Page() {
     setError("");
   };
 
+  const startInvoiceEdit = (investment) => {
+    setEditingInvoiceId(investment.id);
+    setEditingInvoiceValue(investment.invoiceNumber || "");
+    setError("");
+    setSuccess("");
+  };
+
+  const saveInvoiceEdit = () => {
+    if (!editingInvoiceId) return;
+
+    if (!editingInvoiceValue.trim()) {
+      setError("Invoice number cannot be empty");
+      return;
+    }
+
+    setInvestments((prev) =>
+      prev.map((item) =>
+        item.id === editingInvoiceId
+          ? { ...item, invoiceNumber: editingInvoiceValue.trim() }
+          : item
+      )
+    );
+
+    if (selectedInvestmentId === editingInvoiceId) {
+      setSelectedInvestmentId(editingInvoiceId);
+    }
+
+    setEditingInvoiceId("");
+    setEditingInvoiceValue("");
+    setSuccess("Invoice number updated successfully");
+    setError("");
+  };
+
+  const cancelInvoiceEdit = () => {
+    setEditingInvoiceId("");
+    setEditingInvoiceValue("");
+    setError("");
+  };
+
   const reinvestSelected = () => {
     if (!selectedInvestment) return;
 
@@ -226,29 +293,34 @@ export default function Page() {
 
     const reinvestment = {
       id: generateId(),
+      invoiceNumber: `${selectedInvestment.invoiceNumber}-R`,
       investmentName: `${selectedInvestment.investmentName} - Reinvestment`,
       totalAmount: selectedInvestment.totalAmount,
       borrowedAmount: selectedInvestment.borrowedAmount,
       selfInvestedAmount: selectedInvestment.selfInvestedAmount,
       investmentDate: nextInvestmentDate,
       maturityDate: selectedInvestment.maturityDate,
-      borrowedInvestors: (selectedInvestment.borrowedInvestors || []).map((item) => ({
-        ...item,
-        id: generateId(),
-      })),
+      borrowedInvestors: (selectedInvestment.borrowedInvestors || []).map(
+        (item) => ({
+          ...item,
+          id: generateId(),
+        })
+      ),
       status: "active",
       parentInvestmentId: selectedInvestment.id,
     };
 
     setInvestments((prev) => {
       const updated = prev.map((item) =>
-        item.id === selectedInvestment.id ? { ...item, status: "reinvested" } : item
+        item.id === selectedInvestment.id
+          ? { ...item, status: "reinvested" }
+          : item
       );
       return [reinvestment, ...updated];
     });
 
     setSelectedInvestmentId(reinvestment.id);
-    setSuccess("Reinvestment created successfully");
+    setSuccess("Reinvestment created successfully. You can edit the invoice number.");
     setError("");
   };
 
@@ -264,11 +336,21 @@ export default function Page() {
           <div className="card">
             <h2 className="section-title">Add New Investment</h2>
             <p className="section-text">
-              Total investment, borrowed amount, and self-invested amount are handled here.
+              Total investment, borrowed amount, self-invested amount, dates, and invoice number.
             </p>
 
             <div className="form-grid">
-              <div className="full-width">
+              <div>
+                <label>Invoice Number</label>
+                <input
+                  type="text"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  placeholder="Enter invoice number"
+                />
+              </div>
+
+              <div>
                 <label>Investment Name</label>
                 <input
                   type="text"
@@ -300,7 +382,11 @@ export default function Page() {
 
               <div>
                 <label>Self Invested Amount (Auto)</label>
-                <input type="text" value={formatCurrency(selfInvestedAmount)} readOnly />
+                <input
+                  type="text"
+                  value={formatCurrency(selfInvestedAmount)}
+                  readOnly
+                />
               </div>
 
               <div>
@@ -325,17 +411,23 @@ export default function Page() {
             <div className="stats-grid" style={{ marginTop: 20 }}>
               <div className="stat-box">
                 <div className="stat-label">Total Investment</div>
-                <div className="stat-value">{formatCurrency(totalAmountNumber)}</div>
+                <div className="stat-value">
+                  {formatCurrency(totalAmountNumber)}
+                </div>
               </div>
 
               <div className="stat-box">
                 <div className="stat-label">Borrowed Amount</div>
-                <div className="stat-value">{formatCurrency(borrowedAmountNumber)}</div>
+                <div className="stat-value">
+                  {formatCurrency(borrowedAmountNumber)}
+                </div>
               </div>
 
               <div className="stat-box">
                 <div className="stat-label">Self Invested</div>
-                <div className="stat-value">{formatCurrency(selfInvestedAmount)}</div>
+                <div className="stat-value">
+                  {formatCurrency(selfInvestedAmount)}
+                </div>
               </div>
             </div>
 
@@ -348,7 +440,11 @@ export default function Page() {
                   </p>
                 </div>
 
-                <button className="btn-light" type="button" onClick={addBorrowedInvestor}>
+                <button
+                  className="btn-light"
+                  type="button"
+                  onClick={addBorrowedInvestor}
+                >
                   + Add Borrowed Investor
                 </button>
               </div>
@@ -361,7 +457,11 @@ export default function Page() {
                       type="text"
                       value={item.name}
                       onChange={(e) =>
-                        handleBorrowedInvestorChange(item.id, "name", e.target.value)
+                        handleBorrowedInvestorChange(
+                          item.id,
+                          "name",
+                          e.target.value
+                        )
                       }
                       placeholder={`Borrowed Investor ${index + 1}`}
                     />
@@ -373,7 +473,11 @@ export default function Page() {
                       type="number"
                       value={item.amount}
                       onChange={(e) =>
-                        handleBorrowedInvestorChange(item.id, "amount", e.target.value)
+                        handleBorrowedInvestorChange(
+                          item.id,
+                          "amount",
+                          e.target.value
+                        )
                       }
                       placeholder="Amount"
                     />
@@ -381,7 +485,11 @@ export default function Page() {
 
                   <div>
                     <label>Total Borrowed Entered</label>
-                    <input type="text" value={formatCurrency(borrowedInvestorTotal)} readOnly />
+                    <input
+                      type="text"
+                      value={formatCurrency(borrowedInvestorTotal)}
+                      readOnly
+                    />
                   </div>
 
                   <div>
@@ -400,12 +508,16 @@ export default function Page() {
               <div className="stats-grid">
                 <div className="stat-box">
                   <div className="stat-label">Borrowed Investor Total</div>
-                  <div className="stat-value">{formatCurrency(borrowedInvestorTotal)}</div>
+                  <div className="stat-value">
+                    {formatCurrency(borrowedInvestorTotal)}
+                  </div>
                 </div>
 
                 <div className="stat-box">
                   <div className="stat-label">Borrowed Amount Target</div>
-                  <div className="stat-value">{formatCurrency(borrowedAmountNumber)}</div>
+                  <div className="stat-value">
+                    {formatCurrency(borrowedAmountNumber)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -434,7 +546,23 @@ export default function Page() {
 
               <div className="stat-box">
                 <div className="stat-label">Portfolio Amount</div>
-                <div className="stat-value">{formatCurrency(totalPortfolioAmount)}</div>
+                <div className="stat-value">
+                  {formatCurrency(totalPortfolioAmount)}
+                </div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Total Self Invested</div>
+                <div className="stat-value">
+                  {formatCurrency(totalSelfInvestedPortfolioAmount)}
+                </div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Total Borrowed</div>
+                <div className="stat-value">
+                  {formatCurrency(totalBorrowedPortfolioAmount)}
+                </div>
               </div>
 
               <div className="stat-box">
@@ -454,7 +582,10 @@ export default function Page() {
               <div className="stat-box">
                 <div className="stat-label">Reinvested</div>
                 <div className="stat-value">
-                  {investments.filter((item) => item.status === "reinvested").length}
+                  {
+                    investments.filter((item) => item.status === "reinvested")
+                      .length
+                  }
                 </div>
               </div>
             </div>
@@ -494,6 +625,7 @@ export default function Page() {
             investments.map((investment) => {
               const isSelected = investment.id === selectedInvestmentId;
               const reinvestmentStart = addDays(investment.maturityDate, 10);
+              const isEditing = editingInvoiceId === investment.id;
 
               return (
                 <div
@@ -506,29 +638,97 @@ export default function Page() {
                       <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
                       <div className="badge">{investment.status}</div>
 
+                      <div style={{ marginTop: 14, marginBottom: 14 }}>
+                        <strong>Invoice Number:</strong>{" "}
+                        {!isEditing ? (
+                          <>
+                            {investment.invoiceNumber}{" "}
+                            <button
+                              className="btn-light"
+                              type="button"
+                              style={{ marginLeft: 10, padding: "8px 12px" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startInvoiceEdit(investment);
+                              }}
+                            >
+                              Edit Invoice
+                            </button>
+                          </>
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              marginTop: 10,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={editingInvoiceValue}
+                              onChange={(e) =>
+                                setEditingInvoiceValue(e.target.value)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="Enter invoice number"
+                              style={{ maxWidth: 260 }}
+                            />
+                            <button
+                              className="btn-dark"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveInvoiceEdit();
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn-light"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelInvoiceEdit();
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="meta-grid">
                         <div>
-                          <strong>Total Amount:</strong> {formatCurrency(investment.totalAmount)}
+                          <strong>Total Amount:</strong>{" "}
+                          {formatCurrency(investment.totalAmount)}
                         </div>
                         <div>
-                          <strong>Borrowed Amount:</strong> {formatCurrency(investment.borrowedAmount)}
+                          <strong>Borrowed Amount:</strong>{" "}
+                          {formatCurrency(investment.borrowedAmount)}
                         </div>
                         <div>
-                          <strong>Self Invested:</strong> {formatCurrency(investment.selfInvestedAmount)}
+                          <strong>Self Invested:</strong>{" "}
+                          {formatCurrency(investment.selfInvestedAmount)}
                         </div>
                         <div>
-                          <strong>Investment Date:</strong> {investment.investmentDate}
+                          <strong>Investment Date:</strong>{" "}
+                          {investment.investmentDate}
                         </div>
                         <div>
-                          <strong>Maturity Date:</strong> {investment.maturityDate}
+                          <strong>Maturity Date:</strong>{" "}
+                          {investment.maturityDate}
                         </div>
                         <div>
-                          <strong>Reinvestment Start:</strong> {reinvestmentStart}
+                          <strong>Reinvestment Start:</strong>{" "}
+                          {reinvestmentStart}
                         </div>
                       </div>
 
                       {investment.parentInvestmentId && (
-                        <div className="note-box">This is a reinvestment record</div>
+                        <div className="note-box">
+                          This is a reinvestment record
+                        </div>
                       )}
                     </div>
 
