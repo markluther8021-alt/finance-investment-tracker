@@ -29,21 +29,16 @@ const createEmptyInvestor = () => ({
 export default function Page() {
   const [investments, setInvestments] = useState([]);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
-
   const [investmentName, setInvestmentName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [investmentDate, setInvestmentDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
-
   const [investors, setInvestors] = useState([createEmptyInvestor()]);
-
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const investorTotal = useMemo(() => {
-    return investors.reduce((sum, investor) => {
-      return sum + Number(investor.amount || 0);
-    }, 0);
+    return investors.reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
   }, [investors]);
 
   const borrowedTotal = useMemo(() => {
@@ -53,9 +48,12 @@ export default function Page() {
   }, [investors]);
 
   const selectedInvestment = useMemo(() => {
-    if (!selectedInvestmentId) return null;
     return investments.find((item) => item.id === selectedInvestmentId) || null;
   }, [investments, selectedInvestmentId]);
+
+  const totalPortfolioAmount = useMemo(() => {
+    return investments.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
+  }, [investments]);
 
   const resetForm = () => {
     setInvestmentName("");
@@ -95,13 +93,7 @@ export default function Page() {
     const start = new Date(investmentDate);
     const end = new Date(maturityDate);
 
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return "Please enter valid dates";
-    }
-
-    if (end < start) {
-      return "Maturity date cannot be before investment date";
-    }
+    if (end < start) return "Maturity date cannot be before investment date";
 
     const hasInvalidInvestor = investors.some(
       (investor) =>
@@ -113,9 +105,7 @@ export default function Page() {
     }
 
     if (investorTotal !== Number(totalAmount)) {
-      return `Investor total (${investorTotal}) must equal total investment (${Number(
-        totalAmount
-      )})`;
+      return `Investor total (${investorTotal}) must equal total investment (${Number(totalAmount)})`;
     }
 
     if (borrowedTotal > Number(totalAmount)) {
@@ -171,11 +161,6 @@ export default function Page() {
 
     const nextInvestmentDate = addDays(selectedInvestment.maturityDate, 10);
 
-    if (!nextInvestmentDate) {
-      setError("Unable to calculate reinvestment date");
-      return;
-    }
-
     const reinvestment = {
       id: generateId(),
       investmentName: `${selectedInvestment.investmentName} - Reinvestment`,
@@ -192,9 +177,7 @@ export default function Page() {
 
     setInvestments((prev) => {
       const updated = prev.map((item) =>
-        item.id === selectedInvestment.id
-          ? { ...item, status: "reinvested" }
-          : item
+        item.id === selectedInvestment.id ? { ...item, status: "reinvested" } : item
       );
       return [reinvestment, ...updated];
     });
@@ -204,311 +187,212 @@ export default function Page() {
     setError("");
   };
 
-  const totalPortfolioAmount = useMemo(() => {
-    return investments.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
-  }, [investments]);
-
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-            Finance Investment Tracker
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Module 1 - Investment Management
-          </p>
+    <main className="page">
+      <div className="container">
+        <div className="card">
+          <h1 className="header-title">Finance Investment Tracker</h1>
+          <p className="header-subtitle">Module 1 - Investment Management</p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Add New Investment
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Add investment details, investors, borrowed amount, and dates.
-                </p>
+        <div className="grid main-grid" style={{ marginTop: 24 }}>
+          <div className="card">
+            <h2 className="section-title">Add New Investment</h2>
+            <p className="section-text">
+              Add investment details, investors, borrowed amount, and dates.
+            </p>
+
+            <div className="form-grid">
+              <div className="full-width">
+                <label>Investment Name</label>
+                <input
+                  type="text"
+                  value={investmentName}
+                  onChange={(e) => setInvestmentName(e.target.value)}
+                  placeholder="Enter investment name"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Investment Name
-                  </label>
-                  <input
-                    type="text"
-                    value={investmentName}
-                    onChange={(e) => setInvestmentName(e.target.value)}
-                    placeholder="Enter investment name"
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Total Investment Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={totalAmount}
-                    onChange={(e) => setTotalAmount(e.target.value)}
-                    placeholder="Enter total amount"
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Investment Date
-                  </label>
-                  <input
-                    type="date"
-                    value={investmentDate}
-                    onChange={(e) => setInvestmentDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Maturity Date
-                  </label>
-                  <input
-                    type="date"
-                    value={maturityDate}
-                    onChange={(e) => setMaturityDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
+              <div>
+                <label>Total Investment Amount</label>
+                <input
+                  type="number"
+                  value={totalAmount}
+                  onChange={(e) => setTotalAmount(e.target.value)}
+                  placeholder="Enter total amount"
+                />
               </div>
 
-              <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
-                <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <label>Investment Date</label>
+                <input
+                  type="date"
+                  value={investmentDate}
+                  onChange={(e) => setInvestmentDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Maturity Date</label>
+                <input
+                  type="date"
+                  value={maturityDate}
+                  onChange={(e) => setMaturityDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="investor-box">
+              <div className="investor-head">
+                <div>
+                  <h3 style={{ margin: 0 }}>Investors</h3>
+                  <p className="section-text" style={{ margin: "6px 0 0" }}>
+                    Add own or borrowed investors inside the investment form.
+                  </p>
+                </div>
+
+                <button className="btn-light" type="button" onClick={addInvestor}>
+                  + Add Investor
+                </button>
+              </div>
+
+              {investors.map((investor, index) => (
+                <div className="investor-item" key={investor.id}>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Investors
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      Add own or borrowed investors inside the investment form.
-                    </p>
+                    <label>Investor Name</label>
+                    <input
+                      type="text"
+                      value={investor.name}
+                      onChange={(e) =>
+                        handleInvestorChange(investor.id, "name", e.target.value)
+                      }
+                      placeholder={`Investor ${index + 1}`}
+                    />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={addInvestor}
-                    className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
-                  >
-                    + Add Investor
-                  </button>
-                </div>
+                  <div>
+                    <label>Amount</label>
+                    <input
+                      type="number"
+                      value={investor.amount}
+                      onChange={(e) =>
+                        handleInvestorChange(investor.id, "amount", e.target.value)
+                      }
+                      placeholder="Amount"
+                    />
+                  </div>
 
-                <div className="space-y-4">
-                  {investors.map((investor, index) => (
-                    <div
-                      key={investor.id}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                  <div>
+                    <label>Type</label>
+                    <select
+                      value={investor.type}
+                      onChange={(e) =>
+                        handleInvestorChange(investor.id, "type", e.target.value)
+                      }
                     >
-                      <div className="md:col-span-4">
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          Investor Name
-                        </label>
-                        <input
-                          type="text"
-                          value={investor.name}
-                          onChange={(e) =>
-                            handleInvestorChange(
-                              investor.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          placeholder={`Investor ${index + 1}`}
-                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                        />
-                      </div>
-
-                      <div className="md:col-span-3">
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          Amount
-                        </label>
-                        <input
-                          type="number"
-                          value={investor.amount}
-                          onChange={(e) =>
-                            handleInvestorChange(
-                              investor.id,
-                              "amount",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Amount"
-                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                        />
-                      </div>
-
-                      <div className="md:col-span-3">
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          Type
-                        </label>
-                        <select
-                          value={investor.type}
-                          onChange={(e) =>
-                            handleInvestorChange(
-                              investor.id,
-                              "type",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                        >
-                          <option value="own">Own</option>
-                          <option value="borrowed">Borrowed</option>
-                        </select>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          Action
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => removeInvestor(investor.id)}
-                          disabled={investors.length === 1}
-                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-medium hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-sm text-slate-500">Total from Investors</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">
-                      {investorTotal}
-                    </p>
+                      <option value="own">Own</option>
+                      <option value="borrowed">Borrowed</option>
+                    </select>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-sm text-slate-500">Borrowed Amount</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">
-                      {borrowedTotal}
-                    </p>
+                  <div>
+                    <label>Action</label>
+                    <button
+                      className="btn-light"
+                      type="button"
+                      onClick={() => removeInvestor(investor.id)}
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
-              </div>
+              ))}
 
-              {error && (
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+              <div className="stats-grid">
+                <div className="stat-box">
+                  <div className="stat-label">Total from Investors</div>
+                  <div className="stat-value">{investorTotal}</div>
                 </div>
-              )}
 
-              {success && (
-                <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  {success}
+                <div className="stat-box">
+                  <div className="stat-label">Borrowed Amount</div>
+                  <div className="stat-value">{borrowedTotal}</div>
                 </div>
-              )}
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={saveInvestment}
-                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
-                >
-                  Save Investment
-                </button>
-
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50"
-                >
-                  Clear Form
-                </button>
               </div>
+            </div>
+
+            {error && <div className="alert-error">{error}</div>}
+            {success && <div className="alert-success">{success}</div>}
+
+            <div className="btn-row" style={{ marginTop: 24 }}>
+              <button className="btn-dark" type="button" onClick={saveInvestment}>
+                Save Investment
+              </button>
+              <button className="btn-light" type="button" onClick={resetForm}>
+                Clear Form
+              </button>
             </div>
           </div>
 
-          <div className="xl:col-span-1">
-            <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">
-                Dashboard
-              </h2>
+          <div className="card">
+            <h2 className="section-title">Dashboard</h2>
 
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Total Investments</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {investments.length}
-                  </p>
+            <div className="grid">
+              <div className="stat-box">
+                <div className="stat-label">Total Investments</div>
+                <div className="stat-value">{investments.length}</div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Portfolio Amount</div>
+                <div className="stat-value">{totalPortfolioAmount}</div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Active</div>
+                <div className="stat-value">
+                  {investments.filter((item) => item.status === "active").length}
                 </div>
+              </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Portfolio Amount</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {totalPortfolioAmount}
-                  </p>
+              <div className="stat-box">
+                <div className="stat-label">Matured</div>
+                <div className="stat-value">
+                  {investments.filter((item) => item.status === "matured").length}
                 </div>
+              </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Active</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {investments.filter((item) => item.status === "active").length}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Matured</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {investments.filter((item) => item.status === "matured").length}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Reinvested</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {
-                      investments.filter((item) => item.status === "reinvested")
-                        .length
-                    }
-                  </p>
+              <div className="stat-box">
+                <div className="stat-label">Reinvested</div>
+                <div className="stat-value">
+                  {investments.filter((item) => item.status === "reinvested").length}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="card list-card">
+          <div className="list-head">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="section-title" style={{ marginBottom: 4 }}>
                 Investment List
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="section-text" style={{ margin: 0 }}>
                 Select one investment to view and create reinvestment.
               </p>
             </div>
 
             {selectedInvestment && (
-              <div className="flex flex-wrap gap-3">
+              <div className="btn-row">
                 <button
+                  className="btn-light"
                   type="button"
                   onClick={() => markAsMatured(selectedInvestment.id)}
-                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
                 >
                   Mark as Matured
                 </button>
-
-                <button
-                  type="button"
-                  onClick={reinvestSelected}
-                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-                >
+                <button className="btn-dark" type="button" onClick={reinvestSelected}>
                   Reinvest (+10 days)
                 </button>
               </div>
@@ -516,101 +400,69 @@ export default function Page() {
           </div>
 
           {investments.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-              No investments added yet
-            </div>
+            <div className="empty-box">No investments added yet</div>
           ) : (
-            <div className="space-y-4">
-              {investments.map((investment) => {
-                const isSelected = investment.id === selectedInvestmentId;
-                const reinvestmentStart = addDays(investment.maturityDate, 10);
+            investments.map((investment) => {
+              const isSelected = investment.id === selectedInvestmentId;
+              const reinvestmentStart = addDays(investment.maturityDate, 10);
 
-                return (
-                  <div
-                    key={investment.id}
-                    onClick={() => setSelectedInvestmentId(investment.id)}
-                    className={`cursor-pointer rounded-3xl border p-5 transition ${
-                      isSelected
-                        ? "border-slate-900 bg-slate-50"
-                        : "border-slate-200 bg-white hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-lg font-semibold text-slate-900">
-                            {investment.investmentName}
-                          </h3>
-                          <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
-                            {investment.status}
-                          </span>
+              return (
+                <div
+                  key={investment.id}
+                  className={`investment-item ${isSelected ? "selected" : ""}`}
+                  onClick={() => setSelectedInvestmentId(investment.id)}
+                >
+                  <div className="investment-top">
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
+                      <div className="badge">{investment.status}</div>
+
+                      <div className="meta-grid">
+                        <div>
+                          <strong>Total Amount:</strong> {investment.totalAmount}
                         </div>
-
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
-                          <p>
-                            <span className="font-semibold text-slate-800">
-                              Total Amount:
-                            </span>{" "}
-                            {investment.totalAmount}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-800">
-                              Investment Date:
-                            </span>{" "}
-                            {investment.investmentDate}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-800">
-                              Maturity Date:
-                            </span>{" "}
-                            {investment.maturityDate}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-800">
-                              Reinvestment Start:
-                            </span>{" "}
-                            {reinvestmentStart}
-                          </p>
+                        <div>
+                          <strong>Investment Date:</strong> {investment.investmentDate}
                         </div>
-
-                        {investment.parentInvestmentId && (
-                          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            This is a reinvestment record
-                          </div>
-                        )}
+                        <div>
+                          <strong>Maturity Date:</strong> {investment.maturityDate}
+                        </div>
+                        <div>
+                          <strong>Reinvestment Start:</strong> {reinvestmentStart}
+                        </div>
                       </div>
 
-                      <div className="w-full lg:w-80 rounded-2xl border border-slate-200 bg-white p-4">
-                        <p className="mb-3 text-sm font-semibold text-slate-800">
-                          Investors
-                        </p>
+                      {investment.parentInvestmentId && (
+                        <div className="note-box">This is a reinvestment record</div>
+                      )}
+                    </div>
 
-                        <div className="space-y-2">
-                          {investment.investors.map((investor) => (
-                            <div
-                              key={investor.id}
-                              className="flex items-center justify-between gap-3 text-sm"
-                            >
-                              <div>
-                                <span className="font-medium text-slate-900">
-                                  {investor.name}
-                                </span>
-                                <span className="ml-2 text-slate-500">
-                                  ({investor.type})
-                                </span>
-                              </div>
-                              <span className="font-semibold text-slate-800">
-                                {investor.amount}
-                              </span>
+                    <div className="investor-summary">
+                      <strong>Investors</strong>
+                      <div style={{ marginTop: 12 }}>
+                        {investment.investors.map((investor) => (
+                          <div
+                            key={investor.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              marginBottom: 10,
+                              fontSize: 14,
+                            }}
+                          >
+                            <div>
+                              <strong>{investor.name}</strong> ({investor.type})
                             </div>
-                          ))}
-                        </div>
+                            <div>{investor.amount}</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
