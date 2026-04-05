@@ -13,12 +13,28 @@ const formatDate = (dateStr) => {
   return date.toISOString().split("T")[0];
 };
 
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return "-";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("en-GB");
+};
+
 const addDays = (dateStr, days) => {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
   date.setDate(date.getDate() + days);
   return formatDate(date);
+};
+
+const getDateDifferenceInDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  const diffMs = end.getTime() - start.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
 };
 
 const formatCurrency = (value) => {
@@ -37,6 +53,24 @@ const createBorrowedInvestor = () => ({
   amount: "",
 });
 
+const downloadFile = (filename, content, type) => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const escapeCsv = (value) => {
+  const str = String(value ?? "");
+  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
 export default function Page() {
   const [investments, setInvestments] = useState([]);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
@@ -52,6 +86,9 @@ export default function Page() {
     createBorrowedInvestor(),
   ]);
 
+  const [isEditingMain, setIsEditingMain] = useState(false);
+  const [editingInvestmentId, setEditingInvestmentId] = useState("");
+
   const [editModeId, setEditModeId] = useState("");
   const [editMaturityDate, setEditMaturityDate] = useState("");
   const [editReinvestmentDate, setEditReinvestmentDate] = useState("");
@@ -60,6 +97,9 @@ export default function Page() {
   const [reinvestInvoiceNumber, setReinvestInvoiceNumber] = useState("");
   const [reinvestInvestmentDate, setReinvestInvestmentDate] = useState("");
   const [reinvestMaturityDate, setReinvestMaturityDate] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -91,6 +131,11 @@ export default function Page() {
     );
   }, [investments, selectedInvestmentId, loaded]);
 
+  const clearMessages = () => {
+    setError("");
+    setSuccess("");
+  };
+
   const borrowedAmountNumber = Number(borrowedAmount || 0);
   const totalAmountNumber = Number(totalAmount || 0);
 
@@ -110,26 +155,44 @@ export default function Page() {
     return investments.find((item) => item.id === selectedInvestmentId) || null;
   }, [investments, selectedInvestmentId]);
 
+  const originalInvestments = useMemo(() => {
+    return investments.filter((item) => !item.parentInvestmentId);
+  }, [investments]);
+
   const totalPortfolioAmount = useMemo(() => {
-    return investments.reduce(
+    return originalInvestments.reduce(
       (sum, item) => sum + Number(item.totalAmount || 0),
       0
     );
-  }, [investments]);
+  }, [originalInvestments]);
 
   const totalBorrowedPortfolioAmount = useMemo(() => {
-    return investments.reduce(
+    return originalInvestments.reduce(
       (sum, item) => sum + Number(item.borrowedAmount || 0),
       0
     );
-  }, [investments]);
+  }, [originalInvestments]);
 
   const totalSelfInvestedPortfolioAmount = useMemo(() => {
-    return investments.reduce(
+    return originalInvestments.reduce(
       (sum, item) => sum + Number(item.selfInvestedAmount || 0),
       0
     );
-  }, [investments]);
+  }, [originalInvestments]);
+
+  const filteredInvestments = useMemo(() => {
+    return investments.filter((item) => {
+      const matchesSearch =
+        !searchTerm.trim() ||
+        item.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.investmentName.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" ? true : item.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [investments, searchTerm, statusFilter]);
 
   const resetForm = () => {
     setInvoiceNumber("");
@@ -139,6 +202,8 @@ export default function Page() {
     setInvestmentDate("");
     setMaturityDate("");
     setBorrowedInvestors([createBorrowedInvestor()]);
+    setIsEditingMain(false);
+    setEditingInvestmentId("");
   };
 
   const handleBorrowedInvestorChange = (id, field, value) => {
@@ -158,13 +223,19 @@ export default function Page() {
     });
   };
 
-  const clearMessages = () => {
-    setError("");
-    setSuccess("");
+  const invoiceExists = (invoice, ignoreId = "") => {
+    return investments.some(
+      (item) =>
+        item.id !== ignoreId &&
+        item.invoiceNumber.trim().toLowerCase() === invoice.trim().toLowerCase()
+    );
   };
 
   const validateForm = () => {
     if (!invoiceNumber.trim()) return "Invoice number is required";
+    if (invoiceExists(invoiceNumber, editingInvestmentId)) {
+      return "Invoice number already exists";
+    }
     if (!investmentName.trim()) return "Investment name is required";
     if (!totalAmount || Number(totalAmount) <= 0) {
       return "Total investment amount must be greater than 0";
@@ -220,8 +291,7 @@ export default function Page() {
       return;
     }
 
-    const newInvestment = {
-      id: generateId(),
+    const payload = {
       invoiceNumber: invoiceNumber.trim(),
       investmentName: investmentName.trim(),
       totalAmount: totalAmountNumber,
@@ -237,14 +307,79 @@ export default function Page() {
               amount: Number(item.amount),
             }))
           : [],
-      status: "active",
-      parentInvestmentId: null,
     };
 
-    setInvestments((prev) => [newInvestment, ...prev]);
-    setSelectedInvestmentId(newInvestment.id);
+    if (isEditingMain && editingInvestmentId) {
+      setInvestments((prev) =>
+        prev.map((item) =>
+          item.id === editingInvestmentId ? { ...item, ...payload } : item
+        )
+      );
+      setSelectedInvestmentId(editingInvestmentId);
+      setSuccess("Investment updated successfully");
+    } else {
+      const newInvestment = {
+        id: generateId(),
+        ...payload,
+        status: "active",
+        parentInvestmentId: null,
+      };
+
+      setInvestments((prev) => [newInvestment, ...prev]);
+      setSelectedInvestmentId(newInvestment.id);
+      setSuccess("Investment saved successfully");
+    }
+
     resetForm();
-    setSuccess("Investment saved successfully");
+  };
+
+  const startEditInvestment = (investment) => {
+    setIsEditingMain(true);
+    setEditingInvestmentId(investment.id);
+    setInvoiceNumber(investment.invoiceNumber || "");
+    setInvestmentName(investment.investmentName || "");
+    setTotalAmount(String(investment.totalAmount || ""));
+    setBorrowedAmount(String(investment.borrowedAmount || ""));
+    setInvestmentDate(investment.investmentDate || "");
+    setMaturityDate(investment.maturityDate || "");
+    setBorrowedInvestors(
+      investment.borrowedInvestors && investment.borrowedInvestors.length > 0
+        ? investment.borrowedInvestors.map((item) => ({
+            ...item,
+            amount: String(item.amount ?? ""),
+          }))
+        : [createBorrowedInvestor()]
+    );
+    clearMessages();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const deleteInvestment = (investmentId) => {
+    const target = investments.find((item) => item.id === investmentId);
+    if (!target) return;
+
+    const childIds = investments
+      .filter((item) => item.parentInvestmentId === investmentId)
+      .map((item) => item.id);
+
+    const deleteIds = new Set([investmentId, ...childIds]);
+
+    setInvestments((prev) => prev.filter((item) => !deleteIds.has(item.id)));
+
+    if (selectedInvestmentId === investmentId || childIds.includes(selectedInvestmentId)) {
+      setSelectedInvestmentId("");
+    }
+
+    if (editingInvestmentId === investmentId) {
+      resetForm();
+    }
+
+    setSuccess(
+      childIds.length > 0
+        ? "Investment and related reinvestments deleted"
+        : "Investment deleted"
+    );
+    setError("");
   };
 
   const markAsMatured = (investmentId) => {
@@ -296,16 +431,23 @@ export default function Page() {
     );
 
     cancelEditDates();
-    setSuccess("Dates updated successfully");
+    setSuccess("Maturity date updated successfully");
     setError("");
   };
 
   const openReinvestBox = (investment) => {
     setShowReinvestBoxId(investment.id);
     setReinvestInvoiceNumber("");
+
     const defaultInvestmentDate = addDays(investment.maturityDate, 10);
+    const previousTermDays = getDateDifferenceInDays(
+      investment.investmentDate,
+      investment.maturityDate
+    );
+    const suggestedMaturityDate = addDays(defaultInvestmentDate, previousTermDays);
+
     setReinvestInvestmentDate(defaultInvestmentDate);
-    setReinvestMaturityDate(investment.maturityDate || "");
+    setReinvestMaturityDate(suggestedMaturityDate);
     clearMessages();
   };
 
@@ -319,6 +461,11 @@ export default function Page() {
   const createReinvestment = (investment) => {
     if (!reinvestInvoiceNumber.trim()) {
       setError("New reinvestment invoice number is required");
+      return;
+    }
+
+    if (invoiceExists(reinvestInvoiceNumber)) {
+      setError("Invoice number already exists");
       return;
     }
 
@@ -370,6 +517,87 @@ export default function Page() {
     setError("");
   };
 
+  const exportCsv = () => {
+    const headers = [
+      "Invoice Number",
+      "Investment Name",
+      "Record Type",
+      "Status",
+      "Total Amount",
+      "Borrowed Amount",
+      "Self Invested Amount",
+      "Investment Date",
+      "Maturity Date",
+      "Parent Investment Id",
+    ];
+
+    const rows = investments.map((item) => [
+      item.invoiceNumber,
+      item.investmentName,
+      item.parentInvestmentId ? "Reinvestment" : "Original",
+      item.status,
+      item.totalAmount,
+      item.borrowedAmount,
+      item.selfInvestedAmount,
+      item.investmentDate,
+      item.maturityDate,
+      item.parentInvestmentId || "",
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsv).join(","))
+      .join("\n");
+
+    downloadFile("investment-module-data.csv", csv, "text/csv;charset=utf-8;");
+  };
+
+  const exportBackupJson = () => {
+    downloadFile(
+      "investment-module-backup.json",
+      JSON.stringify({ investments, selectedInvestmentId }, null, 2),
+      "application/json"
+    );
+  };
+
+  const resetAllData = () => {
+    setInvestments([]);
+    setSelectedInvestmentId("");
+    resetForm();
+    setSearchTerm("");
+    setStatusFilter("all");
+    localStorage.removeItem(STORAGE_KEY);
+    setSuccess("All data reset successfully");
+    setError("");
+  };
+
+  const getStatusStyle = (status) => {
+    if (status === "active") {
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+      };
+    }
+
+    if (status === "matured") {
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+      };
+    }
+
+    if (status === "reinvested") {
+      return {
+        background: "#dbeafe",
+        color: "#1d4ed8",
+      };
+    }
+
+    return {
+      background: "#e2e8f0",
+      color: "#334155",
+    };
+  };
+
   return (
     <main className="page">
       <div className="container">
@@ -380,7 +608,9 @@ export default function Page() {
 
         <div className="grid main-grid" style={{ marginTop: 24 }}>
           <div className="card">
-            <h2 className="section-title">Add New Investment</h2>
+            <h2 className="section-title">
+              {isEditingMain ? "Edit Investment" : "Add New Investment"}
+            </h2>
             <p className="section-text">
               Total investment, borrowed amount, self-invested amount, invoice number, and dates.
             </p>
@@ -559,10 +789,11 @@ export default function Page() {
 
             <div className="btn-row" style={{ marginTop: 24 }}>
               <button className="btn-dark" type="button" onClick={saveInvestment}>
-                Save Investment
+                {isEditingMain ? "Update Investment" : "Save Investment"}
               </button>
+
               <button className="btn-light" type="button" onClick={resetForm}>
-                Clear Form
+                {isEditingMain ? "Cancel Edit" : "Clear Form"}
               </button>
             </div>
           </div>
@@ -572,8 +803,8 @@ export default function Page() {
 
             <div className="grid">
               <div className="stat-box">
-                <div className="stat-label">Total Investments</div>
-                <div className="stat-value">{investments.length}</div>
+                <div className="stat-label">Original Investments Only</div>
+                <div className="stat-value">{originalInvestments.length}</div>
               </div>
 
               <div className="stat-box">
@@ -596,25 +827,47 @@ export default function Page() {
               </div>
 
               <div className="stat-box">
-                <div className="stat-label">Active</div>
+                <div className="stat-label">All Records</div>
+                <div className="stat-value">{investments.length}</div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-label">Active Records</div>
                 <div className="stat-value">
                   {investments.filter((item) => item.status === "active").length}
                 </div>
               </div>
 
               <div className="stat-box">
-                <div className="stat-label">Matured</div>
+                <div className="stat-label">Matured Records</div>
                 <div className="stat-value">
                   {investments.filter((item) => item.status === "matured").length}
                 </div>
               </div>
 
               <div className="stat-box">
-                <div className="stat-label">Reinvested</div>
+                <div className="stat-label">Reinvested Records</div>
                 <div className="stat-value">
                   {investments.filter((item) => item.status === "reinvested").length}
                 </div>
               </div>
+            </div>
+
+            <div className="btn-row" style={{ marginTop: 20 }}>
+              <button className="btn-light" type="button" onClick={exportCsv}>
+                Export CSV
+              </button>
+              <button className="btn-light" type="button" onClick={exportBackupJson}>
+                Backup JSON
+              </button>
+              <button
+                className="btn-light"
+                type="button"
+                onClick={resetAllData}
+                style={{ borderColor: "#fecaca", color: "#b91c1c" }}
+              >
+                Reset All Data
+              </button>
             </div>
           </div>
         </div>
@@ -626,27 +879,43 @@ export default function Page() {
                 Investment List
               </h2>
               <p className="section-text" style={{ margin: 0 }}>
-                Data auto-saves after every change.
+                Search, filter, edit, delete, and reinvest from here.
               </p>
             </div>
-
-            {selectedInvestment && (
-              <div className="btn-row">
-                <button
-                  className="btn-light"
-                  type="button"
-                  onClick={() => markAsMatured(selectedInvestment.id)}
-                >
-                  Mark as Matured
-                </button>
-              </div>
-            )}
           </div>
 
-          {investments.length === 0 ? (
-            <div className="empty-box">No investments added yet</div>
+          <div
+            className="btn-row"
+            style={{ marginBottom: 20, alignItems: "end", gap: 16 }}
+          >
+            <div style={{ minWidth: 260 }}>
+              <label>Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search invoice or investment name"
+              />
+            </div>
+
+            <div style={{ minWidth: 220 }}>
+              <label>Status Filter</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="matured">Matured</option>
+                <option value="reinvested">Reinvested</option>
+              </select>
+            </div>
+          </div>
+
+          {filteredInvestments.length === 0 ? (
+            <div className="empty-box">No matching investments found</div>
           ) : (
-            investments.map((investment) => {
+            filteredInvestments.map((investment) => {
               const isSelected = investment.id === selectedInvestmentId;
               const reinvestmentStart = addDays(investment.maturityDate, 10);
               const isEditingDates = editModeId === investment.id;
@@ -661,7 +930,20 @@ export default function Page() {
                   <div className="investment-top">
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
-                      <div className="badge">{investment.status}</div>
+
+                      <div
+                        style={{
+                          ...getStatusStyle(investment.status),
+                          display: "inline-block",
+                          borderRadius: 999,
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          marginTop: 8,
+                        }}
+                      >
+                        {investment.status}
+                      </div>
 
                       <div style={{ marginTop: 14, marginBottom: 14 }}>
                         <strong>Invoice Number:</strong> {investment.invoiceNumber}
@@ -681,13 +963,16 @@ export default function Page() {
                           {formatCurrency(investment.selfInvestedAmount)}
                         </div>
                         <div>
-                          <strong>Investment Date:</strong> {investment.investmentDate}
+                          <strong>Investment Date:</strong>{" "}
+                          {formatDisplayDate(investment.investmentDate)}
                         </div>
                         <div>
-                          <strong>Maturity Date:</strong> {investment.maturityDate}
+                          <strong>Maturity Date:</strong>{" "}
+                          {formatDisplayDate(investment.maturityDate)}
                         </div>
                         <div>
-                          <strong>Reinvestment Start:</strong> {reinvestmentStart}
+                          <strong>Reinvestment Start:</strong>{" "}
+                          {formatDisplayDate(reinvestmentStart)}
                         </div>
                       </div>
 
@@ -696,6 +981,14 @@ export default function Page() {
                         style={{ marginTop: 16 }}
                         onClick={(e) => e.stopPropagation()}
                       >
+                        <button
+                          className="btn-light"
+                          type="button"
+                          onClick={() => startEditInvestment(investment)}
+                        >
+                          Edit Investment
+                        </button>
+
                         <button
                           className="btn-light"
                           type="button"
@@ -710,6 +1003,23 @@ export default function Page() {
                           onClick={() => openReinvestBox(investment)}
                         >
                           Reinvest
+                        </button>
+
+                        <button
+                          className="btn-light"
+                          type="button"
+                          onClick={() => markAsMatured(investment.id)}
+                        >
+                          Mark Matured
+                        </button>
+
+                        <button
+                          className="btn-light"
+                          type="button"
+                          onClick={() => deleteInvestment(investment.id)}
+                          style={{ borderColor: "#fecaca", color: "#b91c1c" }}
+                        >
+                          Delete
                         </button>
                       </div>
 
@@ -728,7 +1038,11 @@ export default function Page() {
                               <input
                                 type="date"
                                 value={editMaturityDate}
-                                onChange={(e) => setEditMaturityDate(e.target.value)}
+                                onChange={(e) => {
+                                  const nextMaturity = e.target.value;
+                                  setEditMaturityDate(nextMaturity);
+                                  setEditReinvestmentDate(addDays(nextMaturity, 10));
+                                }}
                                 style={{ maxWidth: 220 }}
                               />
                             </div>
@@ -738,9 +1052,6 @@ export default function Page() {
                               <input
                                 type="date"
                                 value={editReinvestmentDate}
-                                onChange={(e) =>
-                                  setEditReinvestmentDate(e.target.value)
-                                }
                                 style={{ maxWidth: 220 }}
                                 readOnly
                               />
@@ -793,9 +1104,17 @@ export default function Page() {
                               <input
                                 type="date"
                                 value={reinvestInvestmentDate}
-                                onChange={(e) =>
-                                  setReinvestInvestmentDate(e.target.value)
-                                }
+                                onChange={(e) => {
+                                  const nextDate = e.target.value;
+                                  setReinvestInvestmentDate(nextDate);
+                                  const previousTermDays = getDateDifferenceInDays(
+                                    investment.investmentDate,
+                                    investment.maturityDate
+                                  );
+                                  setReinvestMaturityDate(
+                                    addDays(nextDate, previousTermDays)
+                                  );
+                                }}
                                 style={{ maxWidth: 220 }}
                               />
                             </div>
