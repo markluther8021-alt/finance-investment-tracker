@@ -3,235 +3,222 @@
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "finance-investment-tracker-module-1";
-
 const generateId = () => Math.random().toString(36).slice(2, 10);
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().split("T")[0];
+};
+
+const addDays = (dateStr, days) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+};
+
 const formatCurrency = (value) => {
-  return Number(value || 0).toLocaleString("en-LK", {
+  const number = Number(value || 0);
+  return number.toLocaleString("en-LK", {
     style: "currency",
     currency: "LKR",
   });
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  return new Date(dateStr).toLocaleDateString("en-GB");
-};
-
-const addDays = (dateStr, days) => {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-};
+const createBorrowedInvestor = () => ({
+  id: generateId(),
+  name: "",
+  amount: "",
+});
 
 export default function Page() {
   const [investments, setInvestments] = useState([]);
-  const [search, setSearch] = useState("");
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
 
-  const [form, setForm] = useState({
-    id: "",
-    invoice: "",
-    name: "",
-    total: "",
-    borrowed: "",
-    date: "",
-    maturity: "",
-  });
+  const [search, setSearch] = useState(""); // NEW
+  const [editId, setEditId] = useState(""); // NEW
 
-  const isEdit = !!form.id;
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [investmentName, setInvestmentName] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
+  const [borrowedAmount, setBorrowedAmount] = useState("");
+  const [investmentDate, setInvestmentDate] = useState("");
+  const [maturityDate, setMaturityDate] = useState("");
 
-  // LOAD
+  const [borrowedInvestors, setBorrowedInvestors] = useState([
+    createBorrowedInvestor(),
+  ]);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setInvestments(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setInvestments(parsed.investments || []);
+      setSelectedInvestmentId(parsed.selectedInvestmentId || "");
+    }
+    setLoaded(true);
   }, []);
 
-  // SAVE
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(investments));
+    if (!loaded) return;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ investments, selectedInvestmentId })
+    );
+  }, [investments, selectedInvestmentId, loaded]);
+
+  const borrowedAmountNumber = Number(borrowedAmount || 0);
+  const totalAmountNumber = Number(totalAmount || 0);
+  const selfInvestedAmount = totalAmountNumber - borrowedAmountNumber;
+
+  // ✅ FIX DASHBOARD (exclude reinvestments)
+  const baseInvestments = useMemo(() => {
+    return investments.filter((i) => !i.parentInvestmentId);
   }, [investments]);
 
-  // DASHBOARD (exclude reinvestments)
-  const baseInvestments = investments.filter((i) => !i.parentId);
+  const totalPortfolioAmount = useMemo(() => {
+    return baseInvestments.reduce((s, i) => s + i.totalAmount, 0);
+  }, [baseInvestments]);
 
-  const totals = {
-    total: baseInvestments.reduce((s, i) => s + i.total, 0),
-    borrowed: baseInvestments.reduce((s, i) => s + i.borrowed, 0),
-    self: baseInvestments.reduce((s, i) => s + i.self, 0),
-  };
+  const totalBorrowedPortfolioAmount = useMemo(() => {
+    return baseInvestments.reduce((s, i) => s + i.borrowedAmount, 0);
+  }, [baseInvestments]);
 
-  // SEARCH
-  const filtered = investments.filter(
+  const totalSelfInvestedPortfolioAmount = useMemo(() => {
+    return baseInvestments.reduce((s, i) => s + i.selfInvestedAmount, 0);
+  }, [baseInvestments]);
+
+  // ✅ SEARCH
+  const filteredInvestments = investments.filter(
     (i) =>
-      i.invoice.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
+      i.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
+      i.investmentName.toLowerCase().includes(search.toLowerCase())
   );
 
-  // SAVE / UPDATE
-  const saveInvestment = () => {
-    if (!form.invoice.trim()) return alert("Invoice required");
+  const resetForm = () => {
+    setInvoiceNumber("");
+    setInvestmentName("");
+    setTotalAmount("");
+    setBorrowedAmount("");
+    setInvestmentDate("");
+    setMaturityDate("");
+    setEditId("");
+  };
 
+  const validateForm = () => {
+    if (!invoiceNumber.trim()) return "Invoice required";
+
+    // ✅ DUPLICATE CHECK
     const duplicate = investments.find(
-      (i) => i.invoice === form.invoice && i.id !== form.id
+      (i) => i.invoiceNumber === invoiceNumber && i.id !== editId
     );
-    if (duplicate) return alert("Duplicate invoice");
+    if (duplicate) return "Invoice already exists";
 
-    const total = Number(form.total);
-    const borrowed = Number(form.borrowed || 0);
+    if (borrowedAmountNumber > totalAmountNumber)
+      return "Borrowed > total";
 
-    if (borrowed > total) return alert("Borrowed cannot exceed total");
-
-    const newObj = {
-      id: form.id || generateId(),
-      invoice: form.invoice,
-      name: form.name,
-      total,
-      borrowed,
-      self: total - borrowed,
-      date: form.date,
-      maturity: form.maturity,
-      status: "active",
-      parentId: null,
-    };
-
-    setInvestments((prev) =>
-      isEdit
-        ? prev.map((i) => (i.id === form.id ? newObj : i))
-        : [newObj, ...prev]
-    );
-
-    setForm({
-      id: "",
-      invoice: "",
-      name: "",
-      total: "",
-      borrowed: "",
-      date: "",
-      maturity: "",
-    });
+    return "";
   };
 
-  // EDIT
-  const handleEdit = (item) => {
-    setForm({ ...item });
-  };
-
-  // DELETE
-  const handleDelete = (id) => {
-    if (!confirm("Delete investment?")) return;
-    setInvestments((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  // REINVEST
-  const handleReinvest = (item) => {
-    const newInvoice = prompt("Enter new invoice number");
-    if (!newInvoice) return;
-
-    if (investments.find((i) => i.invoice === newInvoice)) {
-      alert("Duplicate invoice");
+  const saveInvestment = () => {
+    const err = validateForm();
+    if (err) {
+      setError(err);
       return;
     }
 
     const newInvestment = {
-      ...item,
-      id: generateId(),
-      invoice: newInvoice,
-      date: addDays(item.maturity, 10),
+      id: editId || generateId(),
+      invoiceNumber,
+      investmentName,
+      totalAmount: totalAmountNumber,
+      borrowedAmount: borrowedAmountNumber,
+      selfInvestedAmount,
+      investmentDate,
+      maturityDate,
       status: "active",
-      parentId: item.id,
+      parentInvestmentId: null,
     };
 
-    setInvestments((prev) => [
-      newInvestment,
-      ...prev.map((i) =>
-        i.id === item.id ? { ...i, status: "reinvested" } : i
-      ),
-    ]);
+    if (editId) {
+      setInvestments((prev) =>
+        prev.map((i) => (i.id === editId ? newInvestment : i))
+      );
+    } else {
+      setInvestments((prev) => [newInvestment, ...prev]);
+    }
+
+    resetForm();
+    setSuccess("Saved");
+    setError("");
   };
 
-  const statusColor = (status) => {
-    if (status === "active") return "green";
-    if (status === "matured") return "orange";
-    return "gray";
+  const editInvestment = (i) => {
+    setEditId(i.id);
+    setInvoiceNumber(i.invoiceNumber);
+    setInvestmentName(i.investmentName);
+    setTotalAmount(i.totalAmount);
+    setBorrowedAmount(i.borrowedAmount);
+    setInvestmentDate(i.investmentDate);
+    setMaturityDate(i.maturityDate);
+  };
+
+  const deleteInvestment = (id) => {
+    if (!confirm("Delete investment?")) return;
+    setInvestments((prev) => prev.filter((i) => i.id !== id));
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Investment Tracker</h2>
+    <main className="page">
+      <div className="container">
 
-      {/* FORM */}
-      <div>
-        <input
-          placeholder="Invoice"
-          value={form.invoice}
-          onChange={(e) => setForm({ ...form, invoice: e.target.value })}
-        />
-        <input
-          placeholder="Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Total"
-          value={form.total}
-          onChange={(e) => setForm({ ...form, total: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Borrowed"
-          value={form.borrowed}
-          onChange={(e) => setForm({ ...form, borrowed: e.target.value })}
-        />
-        <input
-          type="date"
-          value={form.date}
-          onChange={(e) => setForm({ ...form, date: e.target.value })}
-        />
-        <input
-          type="date"
-          value={form.maturity}
-          onChange={(e) => setForm({ ...form, maturity: e.target.value })}
-        />
+        <h2>Investment Tracker</h2>
+
+        {/* FORM */}
+        <input value={invoiceNumber} onChange={(e)=>setInvoiceNumber(e.target.value)} placeholder="Invoice"/>
+        <input value={investmentName} onChange={(e)=>setInvestmentName(e.target.value)} placeholder="Name"/>
+        <input type="number" value={totalAmount} onChange={(e)=>setTotalAmount(e.target.value)} placeholder="Total"/>
+        <input type="number" value={borrowedAmount} onChange={(e)=>setBorrowedAmount(e.target.value)} placeholder="Borrowed"/>
+        <input type="date" value={investmentDate} onChange={(e)=>setInvestmentDate(e.target.value)}/>
+        <input type="date" value={maturityDate} onChange={(e)=>setMaturityDate(e.target.value)}/>
 
         <button onClick={saveInvestment}>
-          {isEdit ? "Update" : "Save"}
+          {editId ? "Update" : "Save"}
         </button>
-      </div>
 
-      {/* SEARCH */}
-      <input
-        placeholder="Search..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ marginTop: 10 }}
-      />
+        {/* SEARCH */}
+        <input
+          placeholder="Search invoice or name"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-      {/* DASHBOARD */}
-      <div style={{ marginTop: 20 }}>
-        <div>Total: {formatCurrency(totals.total)}</div>
-        <div>Borrowed: {formatCurrency(totals.borrowed)}</div>
-        <div>Self: {formatCurrency(totals.self)}</div>
-      </div>
+        {/* DASHBOARD */}
+        <div>
+          <div>Total: {formatCurrency(totalPortfolioAmount)}</div>
+          <div>Borrowed: {formatCurrency(totalBorrowedPortfolioAmount)}</div>
+          <div>Self: {formatCurrency(totalSelfInvestedPortfolioAmount)}</div>
+        </div>
 
-      {/* LIST */}
-      <div style={{ marginTop: 20 }}>
-        {filtered.map((i) => (
-          <div key={i.id} style={{ border: "1px solid #ccc", padding: 10 }}>
-            <b>{i.name}</b> ({i.invoice})
-            <div style={{ color: statusColor(i.status) }}>{i.status}</div>
+        {/* LIST */}
+        {filteredInvestments.map((i) => (
+          <div key={i.id}>
+            <b>{i.investmentName}</b> ({i.invoiceNumber})
+            <div>{formatCurrency(i.totalAmount)}</div>
 
-            <div>{formatCurrency(i.total)}</div>
-            <div>
-              {formatDate(i.date)} → {formatDate(i.maturity)}
-            </div>
-
-            <button onClick={() => handleEdit(i)}>Edit</button>
-            <button onClick={() => handleDelete(i.id)}>Delete</button>
-            <button onClick={() => handleReinvest(i)}>Reinvest</button>
+            <button onClick={()=>editInvestment(i)}>Edit</button>
+            <button onClick={()=>deleteInvestment(i.id)}>Delete</button>
           </div>
         ))}
+
       </div>
-    </div>
+    </main>
   );
 }
