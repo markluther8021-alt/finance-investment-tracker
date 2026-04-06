@@ -487,10 +487,81 @@ export default function Page() {
     setReinvestMaturityDate("");
   };
 
-  const createReinvestment = (investment) => {
-    if (!reinvestInvoiceNumber.trim()) {
-      setError("New reinvestment invoice number is required");
-      return;
+ const createReinvestment = (investment) => {
+  setError("");
+  setSuccess("");
+
+  if (investment.status !== "matured") {
+    setError("Reinvestment allowed only after maturity");
+    return;
+  }
+
+  const alreadyReinvested = investments.some(
+    (item) => item.parentInvestmentId === investment.id
+  );
+
+  if (alreadyReinvested) {
+    setError("This investment already has a reinvestment");
+    return;
+  }
+
+  if (!reinvestInvoiceNumber.trim()) {
+    setError("New invoice number is required");
+    return;
+  }
+
+  const duplicateInvoice = investments.find(
+    (item) =>
+      item.invoiceNumber.trim().toLowerCase() ===
+      reinvestInvoiceNumber.trim().toLowerCase()
+  );
+
+  if (duplicateInvoice) {
+    setError("Invoice number already exists");
+    return;
+  }
+
+  if (!reinvestInvestmentDate || !reinvestMaturityDate) {
+    setError("Reinvestment dates are required");
+    return;
+  }
+
+  const reinvestStart = new Date(reinvestInvestmentDate);
+  const reinvestEnd = new Date(reinvestMaturityDate);
+
+  if (reinvestEnd < reinvestStart) {
+    setError("Reinvestment maturity date cannot be before start date");
+    return;
+  }
+
+  const reinvestment = {
+    id: generateId(),
+    invoiceNumber: reinvestInvoiceNumber.trim(),
+    investmentName: `${investment.investmentName} - Reinvestment`,
+    totalAmount: investment.totalAmount,
+    borrowedAmount: investment.borrowedAmount,
+    selfInvestedAmount: investment.selfInvestedAmount,
+    investmentDate: reinvestInvestmentDate,
+    maturityDate: reinvestMaturityDate,
+    borrowedInvestors: (investment.borrowedInvestors || []).map((item) => ({
+      ...item,
+      id: generateId(),
+    })),
+    status: "active",
+    parentInvestmentId: investment.id,
+  };
+
+  setInvestments((prev) => {
+    const updated = prev.map((item) =>
+      item.id === investment.id ? { ...item, status: "reinvested" } : item
+    );
+    return [reinvestment, ...updated];
+  });
+
+  setSelectedInvestmentId(reinvestment.id);
+  cancelReinvestBox();
+
+  setSuccess("Reinvestment created successfully");
     }
 
     const duplicateInvoice = investments.find(
@@ -941,13 +1012,16 @@ export default function Page() {
                           Edit Maturity Date
                         </button>
 
-                        <button
-                          className="btn-dark"
-                          type="button"
-                          onClick={() => openReinvestBox(investment)}
-                        >
-                          Reinvest
-                        </button>
+                        {investment.status === "matured" &&
+  !investments.some((i) => i.parentInvestmentId === investment.id) && (
+    <button
+      className="btn-dark"
+      type="button"
+      onClick={() => openReinvestBox(investment)}
+    >
+      Reinvest
+    </button>
+)}
 
                         <button
                           className="btn-light"
