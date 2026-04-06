@@ -13,6 +13,17 @@ const formatDate = (dateStr) => {
   return date.toISOString().split("T")[0];
 };
 
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const addDays = (dateStr, days) => {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -23,12 +34,42 @@ const addDays = (dateStr, days) => {
 
 const formatCurrency = (value) => {
   const number = Number(value || 0);
-  return number.toLocaleString("en-LK", {
-    style: "currency",
-    currency: "LKR",
+  return `LKR ${number.toLocaleString("en-LK", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  })}`;
+};
+
+const getStatusBadgeStyle = (status) => {
+  if (status === "active") {
+    return {
+      background: "#dcfce7",
+      color: "#166534",
+      border: "1px solid #86efac",
+    };
+  }
+
+  if (status === "matured") {
+    return {
+      background: "#ffedd5",
+      color: "#c2410c",
+      border: "1px solid #fdba74",
+    };
+  }
+
+  if (status === "reinvested") {
+    return {
+      background: "#e0e7ff",
+      color: "#4338ca",
+      border: "1px solid #a5b4fc",
+    };
+  }
+
+  return {
+    background: "#f1f5f9",
+    color: "#475569",
+    border: "1px solid #cbd5e1",
+  };
 };
 
 const createBorrowedInvestor = () => ({
@@ -114,7 +155,9 @@ export default function Page() {
   }, [investments, selectedInvestmentId]);
 
   const currentInvestments = useMemo(() => {
-    return investments.filter((item) => !item.parentInvestmentId);
+    return investments.filter(
+      (item) => !item.parentInvestmentId && item.status !== "reinvested"
+    );
   }, [investments]);
 
   const totalPortfolioAmount = useMemo(() => {
@@ -158,6 +201,24 @@ export default function Page() {
     setMaturityDate("");
     setBorrowedInvestors([createBorrowedInvestor()]);
     setEditingInvestmentId("");
+  };
+
+  const resetAllData = () => {
+    const confirmed = window.confirm(
+      "This will delete all saved investment data from this browser. Continue?"
+    );
+
+    if (!confirmed) return;
+
+    localStorage.removeItem(STORAGE_KEY);
+    setInvestments([]);
+    setSelectedInvestmentId("");
+    setSearchTerm("");
+    resetForm();
+    cancelEditDates();
+    cancelReinvestBox();
+    setSuccess("All local data has been reset");
+    setError("");
   };
 
   const handleBorrowedInvestorChange = (id, field, value) => {
@@ -691,7 +752,28 @@ export default function Page() {
           </div>
 
           <div className="card">
-            <h2 className="section-title">Dashboard</h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginBottom: 16,
+              }}
+            >
+              <h2 className="section-title" style={{ marginBottom: 0 }}>
+                Dashboard
+              </h2>
+
+              <button
+                className="btn-light"
+                type="button"
+                onClick={resetAllData}
+              >
+                Reset All Data
+              </button>
+            </div>
 
             <div className="grid">
               <div className="stat-box">
@@ -735,7 +817,7 @@ export default function Page() {
               <div className="stat-box">
                 <div className="stat-label">Reinvested</div>
                 <div className="stat-value">
-                  {currentInvestments.filter((item) => item.status === "reinvested").length}
+                  {investments.filter((item) => item.status === "reinvested").length}
                 </div>
               </div>
             </div>
@@ -785,6 +867,7 @@ export default function Page() {
               const reinvestmentStart = addDays(investment.maturityDate, 10);
               const isEditingDates = editModeId === investment.id;
               const showReinvestBox = showReinvestBoxId === investment.id;
+              const badgeStyle = getStatusBadgeStyle(investment.status);
 
               return (
                 <div
@@ -795,7 +878,16 @@ export default function Page() {
                   <div className="investment-top">
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
-                      <div className="badge">{investment.status}</div>
+                      <div
+                        className="badge"
+                        style={{
+                          background: badgeStyle.background,
+                          color: badgeStyle.color,
+                          border: badgeStyle.border,
+                        }}
+                      >
+                        {investment.status}
+                      </div>
 
                       <div style={{ marginTop: 14, marginBottom: 14 }}>
                         <strong>Invoice Number:</strong> {investment.invoiceNumber}
@@ -815,13 +907,16 @@ export default function Page() {
                           {formatCurrency(investment.selfInvestedAmount)}
                         </div>
                         <div>
-                          <strong>Investment Date:</strong> {investment.investmentDate}
+                          <strong>Investment Date:</strong>{" "}
+                          {formatDisplayDate(investment.investmentDate)}
                         </div>
                         <div>
-                          <strong>Maturity Date:</strong> {investment.maturityDate}
+                          <strong>Maturity Date:</strong>{" "}
+                          {formatDisplayDate(investment.maturityDate)}
                         </div>
                         <div>
-                          <strong>Reinvestment Start:</strong> {reinvestmentStart}
+                          <strong>Reinvestment Start:</strong>{" "}
+                          {formatDisplayDate(reinvestmentStart)}
                         </div>
                       </div>
 
