@@ -43,40 +43,40 @@ const formatCurrency = (value) => {
 const getStatusBadgeStyle = (status) => {
   if (status === "active") {
     return {
-      background: "#dcfce7",
-      color: "#166534",
-      border: "1px solid #86efac",
+      background: "rgba(34, 197, 94, 0.12)",
+      color: "#86efac",
+      border: "1px solid rgba(34, 197, 94, 0.35)",
     };
   }
 
   if (status === "matured") {
     return {
-      background: "#ffedd5",
-      color: "#c2410c",
-      border: "1px solid #fdba74",
+      background: "rgba(249, 115, 22, 0.12)",
+      color: "#fdba74",
+      border: "1px solid rgba(249, 115, 22, 0.35)",
     };
   }
 
   if (status === "reinvested") {
     return {
-      background: "#e0e7ff",
-      color: "#4338ca",
-      border: "1px solid #a5b4fc",
+      background: "rgba(99, 102, 241, 0.12)",
+      color: "#a5b4fc",
+      border: "1px solid rgba(99, 102, 241, 0.35)",
     };
   }
 
   if (status === "merged") {
     return {
-      background: "#ede9fe",
-      color: "#6d28d9",
-      border: "1px solid #c4b5fd",
+      background: "rgba(168, 85, 247, 0.12)",
+      color: "#d8b4fe",
+      border: "1px solid rgba(168, 85, 247, 0.35)",
     };
   }
 
   return {
-    background: "#f1f5f9",
-    color: "#475569",
-    border: "1px solid #cbd5e1",
+    background: "rgba(148, 163, 184, 0.12)",
+    color: "#cbd5e1",
+    border: "1px solid rgba(148, 163, 184, 0.35)",
   };
 };
 
@@ -294,6 +294,20 @@ export default function Page() {
     return parents;
   };
 
+  const getChainChildren = (rootId) => {
+    const chain = [];
+    let current = investments.find((item) => item.id === rootId) || null;
+
+    while (current) {
+      chain.push(current);
+      current =
+        investments.find((item) => item.parentInvestmentId === current.id) ||
+        null;
+    }
+
+    return chain;
+  };
+
   const selectedInvestmentChain = useMemo(() => {
     if (!selectedInvestmentId) return [];
     return getInvestmentChain(selectedInvestmentId);
@@ -449,6 +463,49 @@ export default function Page() {
       const invoice = (item.invoiceNumber || "").toLowerCase();
       const name = (item.investmentName || "").toLowerCase();
       return invoice.includes(keyword) || name.includes(keyword);
+    });
+  }, [investments, reportSearchTerm]);
+
+  const reinvestmentFlowReports = useMemo(() => {
+    const keyword = reportSearchTerm.trim().toLowerCase();
+
+    const rootItems = investments.filter((item) => {
+      if (item.parentInvestmentId) return false;
+      const child = investments.find(
+        (childItem) => childItem.parentInvestmentId === item.id
+      );
+      return Boolean(child);
+    });
+
+    const flows = rootItems
+      .map((root) => {
+        const chain = getChainChildren(root.id);
+        if (chain.length < 2) return null;
+
+        const latest = chain[chain.length - 1];
+        return {
+          id: root.id,
+          root,
+          latest,
+          chain,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const aDate = new Date(a.latest?.investmentDate || 0).getTime();
+        const bDate = new Date(b.latest?.investmentDate || 0).getTime();
+        return bDate - aDate;
+      });
+
+    if (!keyword) return flows;
+
+    return flows.filter((flow) => {
+      const chainInvoices = flow.chain.map((item) => item.invoiceNumber).join(" ");
+      const chainNames = flow.chain.map((item) => item.investmentName).join(" ");
+      return (
+        chainInvoices.toLowerCase().includes(keyword) ||
+        chainNames.toLowerCase().includes(keyword)
+      );
     });
   }, [investments, reportSearchTerm]);
 
@@ -896,7 +953,7 @@ export default function Page() {
     const reinvestment = {
       id: generateId(),
       invoiceNumber: reinvestInvoiceNumber.trim(),
-      investmentName: investment.investmentName,
+      investmentName: `${investment.investmentName} (Reinvested)`,
       totalAmount: investment.totalAmount,
       borrowedAmount: investment.borrowedAmount,
       selfInvestedAmount: investment.selfInvestedAmount,
@@ -1022,7 +1079,7 @@ export default function Page() {
     const mergedInvestment = {
       id: generateId(),
       invoiceNumber: mergeInvoiceNumber.trim(),
-      investmentName: "Merged Investment",
+      investmentName: selectedItems.map((item) => item.invoiceNumber).join(" + "),
       totalAmount: mergedTotalAmount,
       borrowedAmount: mergedBorrowedAmount,
       selfInvestedAmount:
@@ -1065,15 +1122,24 @@ export default function Page() {
 
   return (
     <main className="page">
+      <div className="bg-orb orb-1" />
+      <div className="bg-orb orb-2" />
+      <div className="bg-orb orb-3" />
+
       <div className="container">
-        <div className="card">
-          <h1 className="header-title">Finance Investment Tracker</h1>
-          <p className="header-subtitle">Module 1 - Investment Management</p>
+        <div className="card hero-card">
+          <div className="hero-top">
+            <div>
+              <div className="eyebrow">Premium Finance Workspace</div>
+              <h1 className="header-title">Finance Investment Tracker</h1>
+              <p className="header-subtitle">Module 1 - Investment Management</p>
+            </div>
+          </div>
 
           <div
             className="btn-row"
             style={{
-              marginTop: 20,
+              marginTop: 24,
               display: "flex",
               flexWrap: "wrap",
               gap: 10,
@@ -1088,6 +1154,31 @@ export default function Page() {
 
         {activeTab === "investment" && (
           <>
+            <div className="stats-grid dashboard-top" style={{ marginTop: 24 }}>
+              <div className="stat-box premium">
+                <div className="stat-label">Running Investments</div>
+                <div className="stat-value">{activeRunningInvestments.length}</div>
+              </div>
+              <div className="stat-box premium">
+                <div className="stat-label">Portfolio Amount</div>
+                <div className="stat-value">
+                  {formatCurrency(currentRunningPortfolioAmount)}
+                </div>
+              </div>
+              <div className="stat-box premium">
+                <div className="stat-label">Running Borrowed</div>
+                <div className="stat-value">
+                  {formatCurrency(currentRunningBorrowedPortfolioAmount)}
+                </div>
+              </div>
+              <div className="stat-box premium">
+                <div className="stat-label">Running Self Invested</div>
+                <div className="stat-value">
+                  {formatCurrency(currentRunningSelfInvestedPortfolioAmount)}
+                </div>
+              </div>
+            </div>
+
             <div className="grid main-grid" style={{ marginTop: 24 }}>
               <div className="card">
                 <h2 className="section-title">
@@ -1193,7 +1284,7 @@ export default function Page() {
                 <div className="investor-box">
                   <div className="investor-head">
                     <div>
-                      <h3 style={{ margin: 0 }}>Borrowed Investors</h3>
+                      <h3 style={{ margin: 0, color: "#f8fafc" }}>Borrowed Investors</h3>
                       <p className="section-text" style={{ margin: "6px 0 0" }}>
                         Only fill these if there is a borrowed amount.
                       </p>
@@ -1255,7 +1346,7 @@ export default function Page() {
                       <div>
                         <label>Action</label>
                         <button
-                          className="btn-light"
+                          className="btn-light full-width-btn"
                           type="button"
                           onClick={() => removeBorrowedInvestor(item.id)}
                         >
@@ -1302,16 +1393,7 @@ export default function Page() {
               </div>
 
               <div className="card">
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    marginBottom: 16,
-                  }}
-                >
+                <div className="card-head">
                   <h2 className="section-title" style={{ marginBottom: 0 }}>
                     Dashboard
                   </h2>
@@ -1468,21 +1550,22 @@ export default function Page() {
                     >
                       <div className="investment-top">
                         <div style={{ flex: 1 }}>
-                          <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
-                          <div
-                            className="badge"
-                            style={{
-                              background: badgeStyle.background,
-                              color: badgeStyle.color,
-                              border: badgeStyle.border,
-                            }}
-                          >
-                            {investment.status}
+                          <div className="investment-header-row">
+                            <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
+                            <div
+                              className="badge"
+                              style={{
+                                background: badgeStyle.background,
+                                color: badgeStyle.color,
+                                border: badgeStyle.border,
+                              }}
+                            >
+                              {investment.status}
+                            </div>
                           </div>
 
-                          <div style={{ marginTop: 14, marginBottom: 14 }}>
-                            <strong>Invoice Number:</strong>{" "}
-                            {investment.invoiceNumber}
+                          <div className="invoice-line">
+                            <strong>Invoice Number:</strong> {investment.invoiceNumber}
                           </div>
 
                           <div className="meta-grid">
@@ -1554,7 +1637,7 @@ export default function Page() {
                             )}
 
                             <button
-                              className="btn-light"
+                              className="btn-light danger-btn"
                               type="button"
                               onClick={() => deleteInvestment(investment.id)}
                             >
@@ -1564,14 +1647,7 @@ export default function Page() {
 
                           {isEditingDates && (
                             <div className="note-box" style={{ marginTop: 16 }}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                  alignItems: "end",
-                                }}
-                              >
+                              <div className="mini-form-row">
                                 <div>
                                   <label>Maturity Date</label>
                                   <input
@@ -1618,14 +1694,7 @@ export default function Page() {
 
                           {showReinvestBox && (
                             <div className="note-box" style={{ marginTop: 16 }}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                  alignItems: "end",
-                                }}
-                              >
+                              <div className="mini-form-row">
                                 <div>
                                   <label>New Reinvestment Invoice No</label>
                                   <input
@@ -1687,21 +1756,10 @@ export default function Page() {
                           <strong>Borrowed Investors</strong>
                           <div style={{ marginTop: 12 }}>
                             {(investment.borrowedInvestors || []).length === 0 ? (
-                              <div style={{ fontSize: 14, color: "#64748b" }}>
-                                No borrowed investors
-                              </div>
+                              <div className="muted-text">No borrowed investors</div>
                             ) : (
                               investment.borrowedInvestors.map((item) => (
-                                <div
-                                  key={item.id}
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                    marginBottom: 10,
-                                    fontSize: 14,
-                                  }}
-                                >
+                                <div key={item.id} className="borrowed-row">
                                   <div>
                                     <strong>{item.name}</strong>
                                   </div>
@@ -1722,16 +1780,7 @@ export default function Page() {
 
         {activeTab === "investors" && (
           <div className="card" style={{ marginTop: 24 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-                marginBottom: 16,
-              }}
-            >
+            <div className="card-head">
               <h2 className="section-title" style={{ marginBottom: 0 }}>
                 Investor Module
               </h2>
@@ -1923,7 +1972,8 @@ export default function Page() {
                   Report Module
                 </h2>
                 <p className="section-text" style={{ margin: 0 }}>
-                  Reinvestment history and merged invoice history are shown here.
+                  Reinvestment flow is grouped at the top. Existing reinvestment and
+                  merge records are shown below.
                 </p>
               </div>
             </div>
@@ -1935,6 +1985,104 @@ export default function Page() {
                 onChange={(e) => setReportSearchTerm(e.target.value)}
                 placeholder="Search reports by invoice or investment name"
               />
+            </div>
+
+            <div className="note-box" style={{ marginBottom: 20 }}>
+              <strong style={{ fontSize: 16 }}>Reinvestment Flow View</strong>
+              <div style={{ marginTop: 14 }}>
+                {reinvestmentFlowReports.length === 0 ? (
+                  <div className="muted-text">No reinvestment flows found</div>
+                ) : (
+                  reinvestmentFlowReports.map((flow) => (
+                    <div
+                      key={flow.id}
+                      className="investment-item"
+                      style={{ marginBottom: 14, cursor: "default" }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div className="investment-header-row">
+                          <h3 style={{ margin: 0 }}>
+                            {flow.chain.map((item) => item.invoiceNumber).join(" → ")}
+                          </h3>
+                          <div
+                            className="badge"
+                            style={{
+                              background: getStatusBadgeStyle(flow.latest.status).background,
+                              color: getStatusBadgeStyle(flow.latest.status).color,
+                              border: getStatusBadgeStyle(flow.latest.status).border,
+                            }}
+                          >
+                            {flow.latest.status}
+                          </div>
+                        </div>
+
+                        <div className="meta-grid" style={{ marginTop: 16 }}>
+                          <div>
+                            <strong>Initial Invoice:</strong> {flow.root.invoiceNumber}
+                          </div>
+                          <div>
+                            <strong>Latest Invoice:</strong> {flow.latest.invoiceNumber}
+                          </div>
+                          <div>
+                            <strong>Initial Investment Date:</strong>{" "}
+                            {formatDisplayDate(flow.root.investmentDate)}
+                          </div>
+                          <div>
+                            <strong>Latest Investment Date:</strong>{" "}
+                            {formatDisplayDate(flow.latest.investmentDate)}
+                          </div>
+                          <div>
+                            <strong>Current Total Amount:</strong>{" "}
+                            {formatCurrency(flow.latest.totalAmount)}
+                          </div>
+                          <div>
+                            <strong>Current Borrowed Amount:</strong>{" "}
+                            {formatCurrency(flow.latest.borrowedAmount)}
+                          </div>
+                        </div>
+
+                        <div className="note-box" style={{ marginTop: 16 }}>
+                          <strong>Flow Breakdown</strong>
+                          <div style={{ marginTop: 10 }}>
+                            {flow.chain.map((item, index) => (
+                              <div
+                                key={item.id}
+                                style={{
+                                  display: "flex",
+                                  gap: 12,
+                                  flexWrap: "wrap",
+                                  marginBottom: 10,
+                                  color: "#cbd5e1",
+                                  fontSize: 14,
+                                }}
+                              >
+                                <div>
+                                  <strong>Step {index + 1}:</strong> {item.invoiceNumber}
+                                </div>
+                                <div>
+                                  <strong>Name:</strong> {item.investmentName}
+                                </div>
+                                <div>
+                                  <strong>Date:</strong>{" "}
+                                  {formatDisplayDate(item.investmentDate)}
+                                </div>
+                                <div>
+                                  <strong>Maturity:</strong>{" "}
+                                  {formatDisplayDate(item.maturityDate)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="note-box" style={{ marginBottom: 20 }}>
+              <strong style={{ fontSize: 16 }}>Detailed Existing Records</strong>
             </div>
 
             {reportRecords.length === 0 ? (
@@ -1959,21 +2107,22 @@ export default function Page() {
                   >
                     <div className="investment-top">
                       <div style={{ flex: 1 }}>
-                        <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
-                        <div
-                          className="badge"
-                          style={{
-                            background: badgeStyle.background,
-                            color: badgeStyle.color,
-                            border: badgeStyle.border,
-                          }}
-                        >
-                          {investment.status}
+                        <div className="investment-header-row">
+                          <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
+                          <div
+                            className="badge"
+                            style={{
+                              background: badgeStyle.background,
+                              color: badgeStyle.color,
+                              border: badgeStyle.border,
+                            }}
+                          >
+                            {investment.status}
+                          </div>
                         </div>
 
-                        <div style={{ marginTop: 14, marginBottom: 14 }}>
-                          <strong>Invoice Number:</strong>{" "}
-                          {investment.invoiceNumber}
+                        <div className="invoice-line">
+                          <strong>Invoice Number:</strong> {investment.invoiceNumber}
                         </div>
 
                         <div className="meta-grid">
@@ -2002,13 +2151,7 @@ export default function Page() {
                         {investment.parentInvestmentId && (
                           <div className="note-box" style={{ marginTop: 16 }}>
                             <strong>Reinvestment Summary</strong>
-                            <div
-                              style={{
-                                marginTop: 10,
-                                fontSize: 14,
-                                color: "#334155",
-                              }}
-                            >
+                            <div className="report-detail">
                               <div>
                                 <strong>Invoice Chain:</strong>{" "}
                                 {investmentChain
@@ -2036,13 +2179,7 @@ export default function Page() {
                         {isMergedRecord && (
                           <div className="note-box" style={{ marginTop: 16 }}>
                             <strong>Merge Summary</strong>
-                            <div
-                              style={{
-                                marginTop: 10,
-                                fontSize: 14,
-                                color: "#334155",
-                              }}
-                            >
+                            <div className="report-detail">
                               <div>
                                 <strong>Merged From Invoices:</strong>{" "}
                                 {mergeSources.length === 0
@@ -2112,21 +2249,10 @@ export default function Page() {
                         <strong>Borrowed Investors</strong>
                         <div style={{ marginTop: 12 }}>
                           {(investment.borrowedInvestors || []).length === 0 ? (
-                            <div style={{ fontSize: 14, color: "#64748b" }}>
-                              No borrowed investors
-                            </div>
+                            <div className="muted-text">No borrowed investors</div>
                           ) : (
                             investment.borrowedInvestors.map((item) => (
-                              <div
-                                key={item.id}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: 12,
-                                  marginBottom: 10,
-                                  fontSize: 14,
-                                }}
-                              >
+                              <div key={item.id} className="borrowed-row">
                                 <div>
                                   <strong>{item.name}</strong>
                                 </div>
@@ -2144,6 +2270,484 @@ export default function Page() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        :global(body) {
+          margin: 0;
+          background:
+            radial-gradient(circle at top left, rgba(99, 102, 241, 0.14), transparent 28%),
+            radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 24%),
+            linear-gradient(180deg, #030712 0%, #07111f 45%, #020617 100%);
+          color: #e2e8f0;
+          font-family: Inter, Arial, sans-serif;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .page {
+          min-height: 100vh;
+          padding: 32px 18px 50px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .container {
+          max-width: 1480px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 2;
+        }
+
+        .bg-orb {
+          position: fixed;
+          border-radius: 999px;
+          filter: blur(80px);
+          opacity: 0.22;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .orb-1 {
+          width: 260px;
+          height: 260px;
+          background: #22c55e;
+          top: 70px;
+          left: -80px;
+        }
+
+        .orb-2 {
+          width: 320px;
+          height: 320px;
+          background: #6366f1;
+          top: 120px;
+          right: -110px;
+        }
+
+        .orb-3 {
+          width: 240px;
+          height: 240px;
+          background: #a855f7;
+          bottom: 60px;
+          left: 35%;
+        }
+
+        .card {
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.92));
+          border: 1px solid rgba(148, 163, 184, 0.14);
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(14px);
+        }
+
+        .hero-card {
+          padding: 28px;
+          background:
+            linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.95)),
+            linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 197, 94, 0.06));
+        }
+
+        .hero-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .eyebrow {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #c7d2fe;
+          background: rgba(99, 102, 241, 0.14);
+          border: 1px solid rgba(99, 102, 241, 0.28);
+          margin-bottom: 14px;
+        }
+
+        .header-title {
+          margin: 0;
+          font-size: 34px;
+          line-height: 1.1;
+          color: #f8fafc;
+          letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+          margin: 10px 0 0;
+          font-size: 15px;
+          color: #94a3b8;
+        }
+
+        .section-title {
+          margin: 0 0 8px;
+          color: #f8fafc;
+          font-size: 22px;
+          letter-spacing: -0.01em;
+        }
+
+        .section-text {
+          color: #94a3b8;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .grid {
+          display: grid;
+          gap: 16px;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .main-grid {
+          grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+          align-items: start;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 14px;
+        }
+
+        .dashboard-top .stat-box {
+          min-height: 120px;
+        }
+
+        .stat-box {
+          padding: 18px;
+          border-radius: 20px;
+          border: 1px solid rgba(148, 163, 184, 0.14);
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.52));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .stat-box.premium {
+          background:
+            linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92)),
+            linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 197, 94, 0.06));
+          border: 1px solid rgba(99, 102, 241, 0.16);
+        }
+
+        .stat-label {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #94a3b8;
+          margin-bottom: 10px;
+        }
+
+        .stat-value {
+          font-size: 22px;
+          line-height: 1.3;
+          color: #f8fafc;
+          font-weight: 700;
+          word-break: break-word;
+        }
+
+        .investor-box,
+        .note-box {
+          margin-top: 20px;
+          border-radius: 22px;
+          border: 1px solid rgba(148, 163, 184, 0.14);
+          background: rgba(15, 23, 42, 0.55);
+          padding: 20px;
+        }
+
+        .investor-head,
+        .list-head,
+        .card-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+        }
+
+        .investor-item {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 14px;
+          padding: 16px;
+          margin-bottom: 12px;
+          border-radius: 18px;
+          background: rgba(2, 6, 23, 0.38);
+          border: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .btn-row {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .btn-dark,
+        .btn-light {
+          border: none;
+          border-radius: 14px;
+          padding: 12px 16px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.22s ease;
+        }
+
+        .btn-dark {
+          color: #ffffff;
+          background: linear-gradient(135deg, #4f46e5, #7c3aed);
+          box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
+        }
+
+        .btn-dark:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 16px 34px rgba(79, 70, 229, 0.34);
+        }
+
+        .btn-light {
+          color: #e2e8f0;
+          background: rgba(15, 23, 42, 0.78);
+          border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .btn-light:hover {
+          transform: translateY(-1px);
+          background: rgba(30, 41, 59, 0.9);
+        }
+
+        .danger-btn:hover {
+          border-color: rgba(248, 113, 113, 0.35);
+          color: #fecaca;
+        }
+
+        .full-width-btn {
+          width: 100%;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 8px;
+          font-size: 13px;
+          color: #cbd5e1;
+          font-weight: 600;
+        }
+
+        input {
+          width: 100%;
+          border-radius: 14px;
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          background: rgba(2, 6, 23, 0.72);
+          color: #f8fafc;
+          padding: 12px 14px;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        input::placeholder {
+          color: #64748b;
+        }
+
+        input:focus {
+          border-color: rgba(99, 102, 241, 0.58);
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+          background: rgba(2, 6, 23, 0.92);
+        }
+
+        input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          accent-color: #6366f1;
+          cursor: pointer;
+        }
+
+        .alert-error,
+        .alert-success,
+        .empty-box {
+          margin-top: 18px;
+          padding: 14px 16px;
+          border-radius: 16px;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .alert-error {
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          color: #fecaca;
+        }
+
+        .alert-success {
+          background: rgba(34, 197, 94, 0.12);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          color: #bbf7d0;
+        }
+
+        .empty-box {
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px dashed rgba(148, 163, 184, 0.2);
+          color: #94a3b8;
+          text-align: center;
+        }
+
+        .list-card {
+          overflow: hidden;
+        }
+
+        .investment-item {
+          border-radius: 22px;
+          border: 1px solid rgba(148, 163, 184, 0.12);
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(2, 6, 23, 0.78));
+          padding: 20px;
+          margin-bottom: 14px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .investment-item:hover {
+          transform: translateY(-1px);
+          border-color: rgba(99, 102, 241, 0.22);
+        }
+
+        .investment-item.selected {
+          border-color: rgba(99, 102, 241, 0.4);
+          box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+        }
+
+        .investment-top {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 320px;
+          gap: 18px;
+          align-items: start;
+        }
+
+        .investment-header-row {
+          display: flex;
+          gap: 12px;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .invoice-line {
+          margin-top: 14px;
+          margin-bottom: 14px;
+          color: #e2e8f0;
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 7px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        .meta-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+          font-size: 14px;
+          color: #cbd5e1;
+        }
+
+        .investor-summary {
+          border-radius: 20px;
+          background: rgba(2, 6, 23, 0.5);
+          border: 1px solid rgba(148, 163, 184, 0.12);
+          padding: 18px;
+          min-height: 100%;
+        }
+
+        .borrowed-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+          font-size: 14px;
+          color: #e2e8f0;
+        }
+
+        .muted-text {
+          font-size: 14px;
+          color: #94a3b8;
+        }
+
+        .mini-form-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: end;
+        }
+
+        .report-detail {
+          margin-top: 10px;
+          font-size: 14px;
+          color: #cbd5e1;
+        }
+
+        @media (max-width: 1180px) {
+          .main-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .investment-top {
+            grid-template-columns: 1fr;
+          }
+
+          .investor-summary {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .page {
+            padding: 20px 12px 36px;
+          }
+
+          .card,
+          .hero-card {
+            padding: 18px;
+            border-radius: 20px;
+          }
+
+          .header-title {
+            font-size: 28px;
+          }
+
+          .stat-value {
+            font-size: 19px;
+          }
+
+          .investment-item {
+            padding: 16px;
+          }
+
+          .meta-grid,
+          .form-grid,
+          .stats-grid,
+          .grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </main>
   );
 }
