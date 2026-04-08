@@ -43,40 +43,40 @@ const formatCurrency = (value) => {
 const getStatusBadgeStyle = (status) => {
   if (status === "active") {
     return {
-      background: "rgba(34, 197, 94, 0.12)",
-      color: "#86efac",
-      border: "1px solid rgba(34, 197, 94, 0.35)",
+      background: "#dcfce7",
+      color: "#166534",
+      border: "1px solid #bbf7d0",
     };
   }
 
   if (status === "matured") {
     return {
-      background: "rgba(249, 115, 22, 0.12)",
-      color: "#fdba74",
-      border: "1px solid rgba(249, 115, 22, 0.35)",
+      background: "#fff7ed",
+      color: "#c2410c",
+      border: "1px solid #fed7aa",
     };
   }
 
   if (status === "reinvested") {
     return {
-      background: "rgba(99, 102, 241, 0.12)",
-      color: "#a5b4fc",
-      border: "1px solid rgba(99, 102, 241, 0.35)",
+      background: "#eef2ff",
+      color: "#4338ca",
+      border: "1px solid #c7d2fe",
     };
   }
 
   if (status === "merged") {
     return {
-      background: "rgba(168, 85, 247, 0.12)",
-      color: "#d8b4fe",
-      border: "1px solid rgba(168, 85, 247, 0.35)",
+      background: "#f5f3ff",
+      color: "#6d28d9",
+      border: "1px solid #ddd6fe",
     };
   }
 
   return {
-    background: "rgba(148, 163, 184, 0.12)",
-    color: "#cbd5e1",
-    border: "1px solid rgba(148, 163, 184, 0.35)",
+    background: "#f8fafc",
+    color: "#475569",
+    border: "1px solid #e2e8f0",
   };
 };
 
@@ -1112,8 +1112,7 @@ export default function Page() {
       <button
         type="button"
         onClick={() => setActiveTab(tabId)}
-        className={isActive ? "btn-dark" : "btn-light"}
-        style={{ minWidth: 130 }}
+        className={isActive ? "tab-button active" : "tab-button"}
       >
         {label}
       </button>
@@ -1122,72 +1121,64 @@ export default function Page() {
 
   return (
     <main className="page">
-      <div className="bg-orb orb-1" />
-      <div className="bg-orb orb-2" />
-      <div className="bg-orb orb-3" />
-
       <div className="container">
-        <div className="card hero-card">
-          <div className="hero-top">
-            <div>
-              <div className="eyebrow">Premium Finance Workspace</div>
-              <h1 className="header-title">Finance Investment Tracker</h1>
-              <p className="header-subtitle">Module 1 - Investment Management</p>
-            </div>
+        <section className="hero">
+          <div>
+            <div className="hero-tag">Modern Finance Workspace</div>
+            <h1 className="header-title">Finance Investment Tracker</h1>
+            <p className="header-subtitle">Module 1 - Investment Management</p>
           </div>
 
-          <div
-            className="btn-row"
-            style={{
-              marginTop: 24,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 10,
-            }}
-          >
+          <div className="tab-row">
             {renderTabButton("investment", "Investment")}
             {renderTabButton("investors", "Investors")}
             {renderTabButton("merge", "Merge")}
             {renderTabButton("reports", "Reports")}
           </div>
-        </div>
+        </section>
 
         {activeTab === "investment" && (
           <>
-            <div className="stats-grid dashboard-top" style={{ marginTop: 24 }}>
-              <div className="stat-box premium">
-                <div className="stat-label">Running Investments</div>
-                <div className="stat-value">{activeRunningInvestments.length}</div>
+            <section className="top-stats-grid">
+              <div className="overview-card">
+                <div className="overview-label">Running Investments</div>
+                <div className="overview-value">
+                  {activeRunningInvestments.length}
+                </div>
               </div>
-              <div className="stat-box premium">
-                <div className="stat-label">Portfolio Amount</div>
-                <div className="stat-value">
+              <div className="overview-card">
+                <div className="overview-label">Portfolio Amount</div>
+                <div className="overview-value">
                   {formatCurrency(currentRunningPortfolioAmount)}
                 </div>
               </div>
-              <div className="stat-box premium">
-                <div className="stat-label">Running Borrowed</div>
-                <div className="stat-value">
+              <div className="overview-card">
+                <div className="overview-label">Running Borrowed</div>
+                <div className="overview-value">
                   {formatCurrency(currentRunningBorrowedPortfolioAmount)}
                 </div>
               </div>
-              <div className="stat-box premium">
-                <div className="stat-label">Running Self Invested</div>
-                <div className="stat-value">
+              <div className="overview-card">
+                <div className="overview-label">Running Self Invested</div>
+                <div className="overview-value">
                   {formatCurrency(currentRunningSelfInvestedPortfolioAmount)}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="grid main-grid" style={{ marginTop: 24 }}>
-              <div className="card">
-                <h2 className="section-title">
-                  {editingInvestmentId ? "Edit Investment" : "Add New Investment"}
-                </h2>
-                <p className="section-text">
-                  Total investment, borrowed amount, self-invested amount, invoice
-                  number, and dates.
-                </p>
+            <div className="two-column-layout">
+              <section className="panel">
+                <div className="panel-head">
+                  <div>
+                    <h2 className="section-title">
+                      {editingInvestmentId ? "Edit Investment" : "Add New Investment"}
+                    </h2>
+                    <p className="section-text">
+                      Total investment, borrowed amount, self-invested amount,
+                      invoice number, and dates.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="form-grid">
                   <div>
@@ -1258,40 +1249,40 @@ export default function Page() {
                   </div>
                 </div>
 
-                <div className="stats-grid" style={{ marginTop: 20 }}>
-                  <div className="stat-box">
-                    <div className="stat-label">Total Investment</div>
-                    <div className="stat-value">
+                <div className="mini-stat-grid">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Total Investment</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(totalAmountNumber)}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Borrowed Amount</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Borrowed Amount</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(borrowedAmountNumber)}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Self Invested</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Self Invested</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(selfInvestedAmount)}
                     </div>
                   </div>
                 </div>
 
-                <div className="investor-box">
-                  <div className="investor-head">
+                <div className="sub-panel">
+                  <div className="sub-panel-head">
                     <div>
-                      <h3 style={{ margin: 0, color: "#f8fafc" }}>Borrowed Investors</h3>
+                      <h3 className="sub-panel-title">Borrowed Investors</h3>
                       <p className="section-text" style={{ margin: "6px 0 0" }}>
                         Only fill these if there is a borrowed amount.
                       </p>
                     </div>
 
                     <button
-                      className="btn-light"
+                      className="secondary-button"
                       type="button"
                       onClick={addBorrowedInvestor}
                     >
@@ -1300,7 +1291,7 @@ export default function Page() {
                   </div>
 
                   {borrowedInvestors.map((item, index) => (
-                    <div className="investor-item" key={item.id}>
+                    <div className="borrowed-investor-row" key={item.id}>
                       <div>
                         <label>Borrowed Investor Name</label>
                         <input
@@ -1346,7 +1337,7 @@ export default function Page() {
                       <div>
                         <label>Action</label>
                         <button
-                          className="btn-light full-width-btn"
+                          className="secondary-button full-width"
                           type="button"
                           onClick={() => removeBorrowedInvestor(item.id)}
                         >
@@ -1362,44 +1353,44 @@ export default function Page() {
                     ))}
                   </datalist>
 
-                  <div className="stats-grid">
-                    <div className="stat-box">
-                      <div className="stat-label">Borrowed Investor Total</div>
-                      <div className="stat-value">
+                  <div className="mini-stat-grid">
+                    <div className="mini-stat-card">
+                      <div className="mini-stat-label">Borrowed Investor Total</div>
+                      <div className="mini-stat-value">
                         {formatCurrency(borrowedInvestorTotal)}
                       </div>
                     </div>
 
-                    <div className="stat-box">
-                      <div className="stat-label">Borrowed Amount Target</div>
-                      <div className="stat-value">
+                    <div className="mini-stat-card">
+                      <div className="mini-stat-label">Borrowed Amount Target</div>
+                      <div className="mini-stat-value">
                         {formatCurrency(borrowedAmountNumber)}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {error && <div className="alert-error">{error}</div>}
-                {success && <div className="alert-success">{success}</div>}
+                {error && <div className="alert error">{error}</div>}
+                {success && <div className="alert success">{success}</div>}
 
-                <div className="btn-row" style={{ marginTop: 24 }}>
-                  <button className="btn-dark" type="button" onClick={saveInvestment}>
+                <div className="action-row">
+                  <button className="primary-button" type="button" onClick={saveInvestment}>
                     {editingInvestmentId ? "Update Investment" : "Save Investment"}
                   </button>
-                  <button className="btn-light" type="button" onClick={resetForm}>
+                  <button className="secondary-button" type="button" onClick={resetForm}>
                     {editingInvestmentId ? "Cancel Edit" : "Clear Form"}
                   </button>
                 </div>
-              </div>
+              </section>
 
-              <div className="card">
-                <div className="card-head">
+              <section className="panel">
+                <div className="panel-head">
                   <h2 className="section-title" style={{ marginBottom: 0 }}>
                     Dashboard
                   </h2>
 
                   <button
-                    className="btn-light"
+                    className="secondary-button"
                     type="button"
                     onClick={resetAllData}
                   >
@@ -1407,69 +1398,69 @@ export default function Page() {
                   </button>
                 </div>
 
-                <div className="grid">
-                  <div className="stat-box">
-                    <div className="stat-label">Current Running Investments</div>
-                    <div className="stat-value">
+                <div className="dashboard-grid">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Current Running Investments</div>
+                    <div className="mini-stat-value">
                       {activeRunningInvestments.length}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Running Portfolio Amount</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Running Portfolio Amount</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(currentRunningPortfolioAmount)}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Running Self Invested</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Running Self Invested</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(currentRunningSelfInvestedPortfolioAmount)}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Running Borrowed</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Running Borrowed</div>
+                    <div className="mini-stat-value">
                       {formatCurrency(currentRunningBorrowedPortfolioAmount)}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Active</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Active</div>
+                    <div className="mini-stat-value">
                       {activeRunningInvestments.length}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Matured</div>
-                    <div className="stat-value">{maturedInvestments.length}</div>
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Matured</div>
+                    <div className="mini-stat-value">{maturedInvestments.length}</div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Reinvested</div>
-                    <div className="stat-value">
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Reinvested</div>
+                    <div className="mini-stat-value">
                       {reinvestedInvestments.length}
                     </div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Merged</div>
-                    <div className="stat-value">{mergedInvestments.length}</div>
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Merged</div>
+                    <div className="mini-stat-value">{mergedInvestments.length}</div>
                   </div>
 
-                  <div className="stat-box">
-                    <div className="stat-label">Total Records</div>
-                    <div className="stat-value">{investments.length}</div>
+                  <div className="mini-stat-card">
+                    <div className="mini-stat-label">Total Records</div>
+                    <div className="mini-stat-value">{investments.length}</div>
                   </div>
                 </div>
 
                 {selectedInvestment && (
-                  <div className="note-box" style={{ marginTop: 16 }}>
+                  <div className="selected-summary-card">
                     <strong>Selected Investment Summary</strong>
-                    <div className="meta-grid" style={{ marginTop: 12 }}>
+                    <div className="details-grid" style={{ marginTop: 12 }}>
                       <div>
                         <strong>Current Invoice:</strong>{" "}
                         {selectedInvestment.invoiceNumber}
@@ -1491,11 +1482,11 @@ export default function Page() {
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
             </div>
 
-            <div className="card list-card" style={{ marginTop: 24 }}>
-              <div className="list-head">
+            <section className="panel" style={{ marginTop: 24 }}>
+              <div className="panel-head">
                 <div>
                   <h2 className="section-title" style={{ marginBottom: 4 }}>
                     Investment List
@@ -1507,9 +1498,9 @@ export default function Page() {
                 </div>
 
                 {selectedInvestment && selectedInvestment.status === "active" && (
-                  <div className="btn-row">
+                  <div className="action-row">
                     <button
-                      className="btn-light"
+                      className="secondary-button"
                       type="button"
                       onClick={() => markAsMatured(selectedInvestment.id)}
                     >
@@ -1529,7 +1520,7 @@ export default function Page() {
               </div>
 
               {filteredInvestments.length === 0 ? (
-                <div className="empty-box">
+                <div className="empty-state">
                   {searchTerm
                     ? "No matching investments found"
                     : "No active or matured investments to show"}
@@ -1545,15 +1536,15 @@ export default function Page() {
                   return (
                     <div
                       key={investment.id}
-                      className={`investment-item ${isSelected ? "selected" : ""}`}
+                      className={`list-card-item ${isSelected ? "selected" : ""}`}
                       onClick={() => setSelectedInvestmentId(investment.id)}
                     >
-                      <div className="investment-top">
+                      <div className="list-card-top">
                         <div style={{ flex: 1 }}>
-                          <div className="investment-header-row">
+                          <div className="item-head-row">
                             <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
                             <div
-                              className="badge"
+                              className="status-badge"
                               style={{
                                 background: badgeStyle.background,
                                 color: badgeStyle.color,
@@ -1568,7 +1559,7 @@ export default function Page() {
                             <strong>Invoice Number:</strong> {investment.invoiceNumber}
                           </div>
 
-                          <div className="meta-grid">
+                          <div className="details-grid">
                             <div>
                               <strong>Total Amount:</strong>{" "}
                               {formatCurrency(investment.totalAmount)}
@@ -1596,12 +1587,12 @@ export default function Page() {
                           </div>
 
                           <div
-                            className="btn-row"
+                            className="action-row"
                             style={{ marginTop: 16 }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
-                              className="btn-light"
+                              className="secondary-button"
                               type="button"
                               onClick={() => editInvestment(investment)}
                             >
@@ -1609,7 +1600,7 @@ export default function Page() {
                             </button>
 
                             <button
-                              className="btn-light"
+                              className="secondary-button"
                               type="button"
                               onClick={() => startEditDates(investment)}
                             >
@@ -1618,7 +1609,7 @@ export default function Page() {
 
                             {investment.status === "active" && (
                               <button
-                                className="btn-light"
+                                className="secondary-button"
                                 type="button"
                                 onClick={() => markAsMatured(investment.id)}
                               >
@@ -1628,7 +1619,7 @@ export default function Page() {
 
                             {canReinvest(investment) && (
                               <button
-                                className="btn-dark"
+                                className="primary-button"
                                 type="button"
                                 onClick={() => openReinvestBox(investment)}
                               >
@@ -1637,7 +1628,7 @@ export default function Page() {
                             )}
 
                             <button
-                              className="btn-light danger-btn"
+                              className="secondary-button danger"
                               type="button"
                               onClick={() => deleteInvestment(investment.id)}
                             >
@@ -1646,8 +1637,8 @@ export default function Page() {
                           </div>
 
                           {isEditingDates && (
-                            <div className="note-box" style={{ marginTop: 16 }}>
-                              <div className="mini-form-row">
+                            <div className="inline-box">
+                              <div className="inline-form-row">
                                 <div>
                                   <label>Maturity Date</label>
                                   <input
@@ -1674,7 +1665,7 @@ export default function Page() {
                                 </div>
 
                                 <button
-                                  className="btn-dark"
+                                  className="primary-button"
                                   type="button"
                                   onClick={() => saveEditDates(investment)}
                                 >
@@ -1682,7 +1673,7 @@ export default function Page() {
                                 </button>
 
                                 <button
-                                  className="btn-light"
+                                  className="secondary-button"
                                   type="button"
                                   onClick={cancelEditDates}
                                 >
@@ -1693,8 +1684,8 @@ export default function Page() {
                           )}
 
                           {showReinvestBox && (
-                            <div className="note-box" style={{ marginTop: 16 }}>
-                              <div className="mini-form-row">
+                            <div className="inline-box">
+                              <div className="inline-form-row">
                                 <div>
                                   <label>New Reinvestment Invoice No</label>
                                   <input
@@ -1733,7 +1724,7 @@ export default function Page() {
                                 </div>
 
                                 <button
-                                  className="btn-dark"
+                                  className="primary-button"
                                   type="button"
                                   onClick={() => createReinvestment(investment)}
                                 >
@@ -1741,7 +1732,7 @@ export default function Page() {
                                 </button>
 
                                 <button
-                                  className="btn-light"
+                                  className="secondary-button"
                                   type="button"
                                   onClick={cancelReinvestBox}
                                 >
@@ -1752,14 +1743,14 @@ export default function Page() {
                           )}
                         </div>
 
-                        <div className="investor-summary">
+                        <div className="side-card">
                           <strong>Borrowed Investors</strong>
                           <div style={{ marginTop: 12 }}>
                             {(investment.borrowedInvestors || []).length === 0 ? (
                               <div className="muted-text">No borrowed investors</div>
                             ) : (
                               investment.borrowedInvestors.map((item) => (
-                                <div key={item.id} className="borrowed-row">
+                                <div key={item.id} className="side-row">
                                   <div>
                                     <strong>{item.name}</strong>
                                   </div>
@@ -1774,13 +1765,13 @@ export default function Page() {
                   );
                 })
               )}
-            </div>
+            </section>
           </>
         )}
 
         {activeTab === "investors" && (
-          <div className="card" style={{ marginTop: 24 }}>
-            <div className="card-head">
+          <section className="panel" style={{ marginTop: 24 }}>
+            <div className="panel-head">
               <h2 className="section-title" style={{ marginBottom: 0 }}>
                 Investor Module
               </h2>
@@ -1796,14 +1787,14 @@ export default function Page() {
             </div>
 
             {filteredInvestorSummaryRows.length === 0 ? (
-              <div className="empty-box">No investor records found</div>
+              <div className="empty-state">No investor records found</div>
             ) : (
               filteredInvestorSummaryRows.map((item) => (
-                <div className="investment-item" key={item.id}>
-                  <div className="investment-top">
+                <div className="list-card-item" key={item.id}>
+                  <div className="list-card-top">
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: 0 }}>{item.name}</h3>
-                      <div className="meta-grid" style={{ marginTop: 16 }}>
+                      <div className="details-grid" style={{ marginTop: 16 }}>
                         <div>
                           <strong>Total Current Amount:</strong>{" "}
                           {formatCurrency(item.totalAmount)}
@@ -1822,19 +1813,19 @@ export default function Page() {
                 </div>
               ))
             )}
-          </div>
+          </section>
         )}
 
         {activeTab === "merge" && (
-          <div className="card" style={{ marginTop: 24 }}>
+          <section className="panel" style={{ marginTop: 24 }}>
             <h2 className="section-title">Merge Matured Invoices</h2>
             <p className="section-text">
               Select at least 2 matured invoices. Merge invoice number is manual.
               Merge investment date is manual. Merge maturity date is manual.
             </p>
 
-            {error && <div className="alert-error">{error}</div>}
-            {success && <div className="alert-success">{success}</div>}
+            {error && <div className="alert error">{error}</div>}
+            {success && <div className="alert success">{success}</div>}
 
             <div className="form-grid">
               <div>
@@ -1866,26 +1857,26 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="stats-grid" style={{ marginTop: 20 }}>
-              <div className="stat-box">
-                <div className="stat-label">Selected Invoices</div>
-                <div className="stat-value">{selectedMergeInvestments.length}</div>
+            <div className="mini-stat-grid" style={{ marginTop: 20 }}>
+              <div className="mini-stat-card">
+                <div className="mini-stat-label">Selected Invoices</div>
+                <div className="mini-stat-value">{selectedMergeInvestments.length}</div>
               </div>
-              <div className="stat-box">
-                <div className="stat-label">Selected Total Amount</div>
-                <div className="stat-value">
+              <div className="mini-stat-card">
+                <div className="mini-stat-label">Selected Total Amount</div>
+                <div className="mini-stat-value">
                   {formatCurrency(selectedMergeTotalAmount)}
                 </div>
               </div>
-              <div className="stat-box">
-                <div className="stat-label">Selected Borrowed Amount</div>
-                <div className="stat-value">
+              <div className="mini-stat-card">
+                <div className="mini-stat-label">Selected Borrowed Amount</div>
+                <div className="mini-stat-value">
                   {formatCurrency(selectedMergeBorrowedAmount)}
                 </div>
               </div>
-              <div className="stat-box">
-                <div className="stat-label">Selected Self Invested</div>
-                <div className="stat-value">
+              <div className="mini-stat-card">
+                <div className="mini-stat-label">Selected Self Invested</div>
+                <div className="mini-stat-value">
                   {formatCurrency(selectedMergeSelfAmount)}
                 </div>
               </div>
@@ -1893,18 +1884,18 @@ export default function Page() {
 
             <div style={{ marginTop: 20 }}>
               {mergeCandidates.length === 0 ? (
-                <div className="empty-box">
+                <div className="empty-state">
                   No matured invoices available for merge
                 </div>
               ) : (
                 mergeCandidates.map((item) => (
                   <div
                     key={item.id}
-                    className="investment-item"
+                    className="list-card-item"
                     style={{ marginBottom: 12 }}
                   >
                     <div
-                      className="investment-top"
+                      className="list-card-top"
                       style={{ alignItems: "center", gap: 16 }}
                     >
                       <div style={{ minWidth: 32 }}>
@@ -1917,7 +1908,7 @@ export default function Page() {
 
                       <div style={{ flex: 1 }}>
                         <h3 style={{ margin: 0 }}>{item.investmentName}</h3>
-                        <div className="meta-grid" style={{ marginTop: 14 }}>
+                        <div className="details-grid" style={{ marginTop: 14 }}>
                           <div>
                             <strong>Invoice:</strong> {item.invoiceNumber}
                           </div>
@@ -1945,340 +1936,356 @@ export default function Page() {
               )}
             </div>
 
-            <div className="btn-row" style={{ marginTop: 24 }}>
+            <div className="action-row" style={{ marginTop: 24 }}>
               <button
-                className="btn-dark"
+                className="primary-button"
                 type="button"
                 onClick={createMergedInvestment}
               >
                 Create Merged Investment
               </button>
               <button
-                className="btn-light"
+                className="secondary-button"
                 type="button"
                 onClick={resetMergeForm}
               >
                 Clear Merge Selection
               </button>
             </div>
-          </div>
+          </section>
         )}
 
         {activeTab === "reports" && (
-          <div className="card list-card" style={{ marginTop: 24 }}>
-            <div className="list-head">
-              <div>
-                <h2 className="section-title" style={{ marginBottom: 4 }}>
-                  Report Module
-                </h2>
-                <p className="section-text" style={{ margin: 0 }}>
-                  Reinvestment flow is grouped at the top. Existing reinvestment and
-                  merge records are shown below.
-                </p>
+          <section className="report-page" style={{ marginTop: 24 }}>
+            <div className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2 className="section-title" style={{ marginBottom: 4 }}>
+                    Reports
+                  </h2>
+                  <p className="section-text" style={{ margin: 0 }}>
+                    Flow summary at the top. Detailed reinvestment and merge records
+                    below.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <input
-                type="text"
-                value={reportSearchTerm}
-                onChange={(e) => setReportSearchTerm(e.target.value)}
-                placeholder="Search reports by invoice or investment name"
-              />
-            </div>
+              <div style={{ marginBottom: 20 }}>
+                <input
+                  type="text"
+                  value={reportSearchTerm}
+                  onChange={(e) => setReportSearchTerm(e.target.value)}
+                  placeholder="Search reports by invoice or investment name"
+                />
+              </div>
 
-            <div className="note-box" style={{ marginBottom: 20 }}>
-              <strong style={{ fontSize: 16 }}>Reinvestment Flow View</strong>
-              <div style={{ marginTop: 14 }}>
+              <div className="report-section">
+                <div className="report-section-head">
+                  <h3 className="report-section-title">Reinvestment Flow Summary</h3>
+                  <span className="section-count">
+                    {reinvestmentFlowReports.length} Flow
+                    {reinvestmentFlowReports.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
                 {reinvestmentFlowReports.length === 0 ? (
-                  <div className="muted-text">No reinvestment flows found</div>
+                  <div className="empty-state">No reinvestment flows found</div>
                 ) : (
-                  reinvestmentFlowReports.map((flow) => (
-                    <div
-                      key={flow.id}
-                      className="investment-item"
-                      style={{ marginBottom: 14, cursor: "default" }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div className="investment-header-row">
-                          <h3 style={{ margin: 0 }}>
-                            {flow.chain.map((item) => item.invoiceNumber).join(" → ")}
-                          </h3>
-                          <div
-                            className="badge"
-                            style={{
-                              background: getStatusBadgeStyle(flow.latest.status).background,
-                              color: getStatusBadgeStyle(flow.latest.status).color,
-                              border: getStatusBadgeStyle(flow.latest.status).border,
-                            }}
-                          >
-                            {flow.latest.status}
-                          </div>
-                        </div>
+                  <div className="flow-summary-list">
+                    {reinvestmentFlowReports.map((flow) => {
+                      const latestBadge = getStatusBadgeStyle(flow.latest.status);
 
-                        <div className="meta-grid" style={{ marginTop: 16 }}>
-                          <div>
-                            <strong>Initial Invoice:</strong> {flow.root.invoiceNumber}
-                          </div>
-                          <div>
-                            <strong>Latest Invoice:</strong> {flow.latest.invoiceNumber}
-                          </div>
-                          <div>
-                            <strong>Initial Investment Date:</strong>{" "}
-                            {formatDisplayDate(flow.root.investmentDate)}
-                          </div>
-                          <div>
-                            <strong>Latest Investment Date:</strong>{" "}
-                            {formatDisplayDate(flow.latest.investmentDate)}
-                          </div>
-                          <div>
-                            <strong>Current Total Amount:</strong>{" "}
-                            {formatCurrency(flow.latest.totalAmount)}
-                          </div>
-                          <div>
-                            <strong>Current Borrowed Amount:</strong>{" "}
-                            {formatCurrency(flow.latest.borrowedAmount)}
-                          </div>
-                        </div>
+                      return (
+                        <div key={flow.id} className="flow-summary-card">
+                          <div className="flow-summary-top">
+                            <div className="flow-title-block">
+                              <div className="flow-title">
+                                {flow.chain.map((item) => item.invoiceNumber).join(" → ")}
+                              </div>
+                              <div className="flow-subtitle">
+                                {flow.root.investmentName} → {flow.latest.investmentName}
+                              </div>
+                            </div>
 
-                        <div className="note-box" style={{ marginTop: 16 }}>
-                          <strong>Flow Breakdown</strong>
-                          <div style={{ marginTop: 10 }}>
+                            <div
+                              className="status-badge"
+                              style={{
+                                background: latestBadge.background,
+                                color: latestBadge.color,
+                                border: latestBadge.border,
+                              }}
+                            >
+                              {flow.latest.status}
+                            </div>
+                          </div>
+
+                          <div className="flow-meta-grid">
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Initial Invoice</div>
+                              <div className="flow-meta-value">
+                                {flow.root.invoiceNumber}
+                              </div>
+                            </div>
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Latest Invoice</div>
+                              <div className="flow-meta-value">
+                                {flow.latest.invoiceNumber}
+                              </div>
+                            </div>
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Initial Date</div>
+                              <div className="flow-meta-value">
+                                {formatDisplayDate(flow.root.investmentDate)}
+                              </div>
+                            </div>
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Latest Date</div>
+                              <div className="flow-meta-value">
+                                {formatDisplayDate(flow.latest.investmentDate)}
+                              </div>
+                            </div>
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Current Amount</div>
+                              <div className="flow-meta-value">
+                                {formatCurrency(flow.latest.totalAmount)}
+                              </div>
+                            </div>
+                            <div className="flow-meta-card">
+                              <div className="flow-meta-label">Current Borrowed</div>
+                              <div className="flow-meta-value">
+                                {formatCurrency(flow.latest.borrowedAmount)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flow-steps">
                             {flow.chain.map((item, index) => (
-                              <div
-                                key={item.id}
-                                style={{
-                                  display: "flex",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                  marginBottom: 10,
-                                  color: "#cbd5e1",
-                                  fontSize: 14,
-                                }}
-                              >
-                                <div>
-                                  <strong>Step {index + 1}:</strong> {item.invoiceNumber}
-                                </div>
-                                <div>
-                                  <strong>Name:</strong> {item.investmentName}
-                                </div>
-                                <div>
-                                  <strong>Date:</strong>{" "}
-                                  {formatDisplayDate(item.investmentDate)}
-                                </div>
-                                <div>
-                                  <strong>Maturity:</strong>{" "}
-                                  {formatDisplayDate(item.maturityDate)}
+                              <div key={item.id} className="flow-step">
+                                <div className="flow-step-dot">{index + 1}</div>
+                                <div className="flow-step-content">
+                                  <div className="flow-step-invoice">
+                                    {item.invoiceNumber}
+                                  </div>
+                                  <div className="flow-step-text">
+                                    {item.investmentName}
+                                  </div>
+                                  <div className="flow-step-text">
+                                    {formatDisplayDate(item.investmentDate)} →{" "}
+                                    {formatDisplayDate(item.maturityDate)}
+                                  </div>
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="report-section">
+                <div className="report-section-head">
+                  <h3 className="report-section-title">Detailed Existing Records</h3>
+                  <span className="section-count">
+                    {reportRecords.length} Record
+                    {reportRecords.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                {reportRecords.length === 0 ? (
+                  <div className="empty-state">No report records found</div>
+                ) : (
+                  reportRecords.map((investment) => {
+                    const badgeStyle = getStatusBadgeStyle(investment.status);
+                    const investmentChain = getInvestmentChain(investment.id);
+                    const mergeSources = (investment.mergeSourceInvestmentIds || [])
+                      .map((id) => investments.find((item) => item.id === id))
+                      .filter(Boolean);
+
+                    const isMergedRecord =
+                      Array.isArray(investment.mergeSourceInvestmentIds) &&
+                      investment.mergeSourceInvestmentIds.length > 0;
+
+                    return (
+                      <div
+                        key={investment.id}
+                        className="list-card-item muted-record"
+                        style={{ marginBottom: 16, cursor: "default" }}
+                      >
+                        <div className="list-card-top">
+                          <div style={{ flex: 1 }}>
+                            <div className="item-head-row">
+                              <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
+                              <div
+                                className="status-badge"
+                                style={{
+                                  background: badgeStyle.background,
+                                  color: badgeStyle.color,
+                                  border: badgeStyle.border,
+                                }}
+                              >
+                                {investment.status}
+                              </div>
+                            </div>
+
+                            <div className="invoice-line">
+                              <strong>Invoice Number:</strong> {investment.invoiceNumber}
+                            </div>
+
+                            <div className="details-grid">
+                              <div>
+                                <strong>Total Amount:</strong>{" "}
+                                {formatCurrency(investment.totalAmount)}
+                              </div>
+                              <div>
+                                <strong>Borrowed Amount:</strong>{" "}
+                                {formatCurrency(investment.borrowedAmount)}
+                              </div>
+                              <div>
+                                <strong>Self Invested:</strong>{" "}
+                                {formatCurrency(investment.selfInvestedAmount)}
+                              </div>
+                              <div>
+                                <strong>Investment Date:</strong>{" "}
+                                {formatDisplayDate(investment.investmentDate)}
+                              </div>
+                              <div>
+                                <strong>Maturity Date:</strong>{" "}
+                                {formatDisplayDate(investment.maturityDate)}
+                              </div>
+                            </div>
+
+                            {investment.parentInvestmentId && (
+                              <div className="inline-box">
+                                <strong>Reinvestment Summary</strong>
+                                <div className="detail-stack">
+                                  <div>
+                                    <strong>Invoice Chain:</strong>{" "}
+                                    {investmentChain
+                                      .map((item) => item.invoiceNumber)
+                                      .join(" → ")}
+                                  </div>
+                                  <div>
+                                    <strong>Initial Investment Date:</strong>{" "}
+                                    {investmentChain.length > 0
+                                      ? formatDisplayDate(
+                                          investmentChain[0].investmentDate
+                                        )
+                                      : "-"}
+                                  </div>
+                                  <div>
+                                    <strong>Initial Invoice:</strong>{" "}
+                                    {investmentChain.length > 0
+                                      ? investmentChain[0].invoiceNumber
+                                      : "-"}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {isMergedRecord && (
+                              <div className="inline-box">
+                                <strong>Merge Summary</strong>
+                                <div className="detail-stack">
+                                  <div>
+                                    <strong>Merged From Invoices:</strong>{" "}
+                                    {mergeSources.length === 0
+                                      ? "-"
+                                      : mergeSources
+                                          .map((item) => item.invoiceNumber)
+                                          .join(" + ")}
+                                  </div>
+                                  <div>
+                                    <strong>Initial Investment Dates:</strong>{" "}
+                                    {mergeSources.length === 0
+                                      ? "-"
+                                      : mergeSources
+                                          .map(
+                                            (item) =>
+                                              `${item.invoiceNumber} (${formatDisplayDate(
+                                                item.investmentDate
+                                              )})`
+                                          )
+                                          .join(", ")}
+                                  </div>
+                                  <div>
+                                    <strong>Source Borrowed Investors:</strong>
+                                    <div style={{ marginTop: 6 }}>
+                                      {mergeSources.length === 0 ? (
+                                        <div>-</div>
+                                      ) : (
+                                        mergeSources.map((source) => (
+                                          <div
+                                            key={source.id}
+                                            style={{ marginBottom: 6 }}
+                                          >
+                                            <strong>{source.invoiceNumber}:</strong>{" "}
+                                            {(source.borrowedInvestors || []).length === 0
+                                              ? "No borrowed investors"
+                                              : source.borrowedInvestors
+                                                  .map(
+                                                    (item) =>
+                                                      `${item.name} (${formatCurrency(
+                                                        item.amount
+                                                      )})`
+                                                  )
+                                                  .join(", ")}
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {investment.status === "reinvested" && (
+                              <div className="inline-box">
+                                Previous invoice moved here after reinvestment.
+                              </div>
+                            )}
+
+                            {investment.status === "merged" && (
+                              <div className="inline-box">
+                                Previous invoice moved here after merge.
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="side-card">
+                            <strong>Borrowed Investors</strong>
+                            <div style={{ marginTop: 12 }}>
+                              {(investment.borrowedInvestors || []).length === 0 ? (
+                                <div className="muted-text">No borrowed investors</div>
+                              ) : (
+                                investment.borrowedInvestors.map((item) => (
+                                  <div key={item.id} className="side-row">
+                                    <div>
+                                      <strong>{item.name}</strong>
+                                    </div>
+                                    <div>{formatCurrency(item.amount)}</div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
-
-            <div className="note-box" style={{ marginBottom: 20 }}>
-              <strong style={{ fontSize: 16 }}>Detailed Existing Records</strong>
-            </div>
-
-            {reportRecords.length === 0 ? (
-              <div className="empty-box">No report records found</div>
-            ) : (
-              reportRecords.map((investment) => {
-                const badgeStyle = getStatusBadgeStyle(investment.status);
-                const investmentChain = getInvestmentChain(investment.id);
-                const mergeSources = (investment.mergeSourceInvestmentIds || [])
-                  .map((id) => investments.find((item) => item.id === id))
-                  .filter(Boolean);
-
-                const isMergedRecord =
-                  Array.isArray(investment.mergeSourceInvestmentIds) &&
-                  investment.mergeSourceInvestmentIds.length > 0;
-
-                return (
-                  <div
-                    key={investment.id}
-                    className="investment-item"
-                    style={{ marginBottom: 16 }}
-                  >
-                    <div className="investment-top">
-                      <div style={{ flex: 1 }}>
-                        <div className="investment-header-row">
-                          <h3 style={{ margin: 0 }}>{investment.investmentName}</h3>
-                          <div
-                            className="badge"
-                            style={{
-                              background: badgeStyle.background,
-                              color: badgeStyle.color,
-                              border: badgeStyle.border,
-                            }}
-                          >
-                            {investment.status}
-                          </div>
-                        </div>
-
-                        <div className="invoice-line">
-                          <strong>Invoice Number:</strong> {investment.invoiceNumber}
-                        </div>
-
-                        <div className="meta-grid">
-                          <div>
-                            <strong>Total Amount:</strong>{" "}
-                            {formatCurrency(investment.totalAmount)}
-                          </div>
-                          <div>
-                            <strong>Borrowed Amount:</strong>{" "}
-                            {formatCurrency(investment.borrowedAmount)}
-                          </div>
-                          <div>
-                            <strong>Self Invested:</strong>{" "}
-                            {formatCurrency(investment.selfInvestedAmount)}
-                          </div>
-                          <div>
-                            <strong>Investment Date:</strong>{" "}
-                            {formatDisplayDate(investment.investmentDate)}
-                          </div>
-                          <div>
-                            <strong>Maturity Date:</strong>{" "}
-                            {formatDisplayDate(investment.maturityDate)}
-                          </div>
-                        </div>
-
-                        {investment.parentInvestmentId && (
-                          <div className="note-box" style={{ marginTop: 16 }}>
-                            <strong>Reinvestment Summary</strong>
-                            <div className="report-detail">
-                              <div>
-                                <strong>Invoice Chain:</strong>{" "}
-                                {investmentChain
-                                  .map((item) => item.invoiceNumber)
-                                  .join(" → ")}
-                              </div>
-                              <div style={{ marginTop: 6 }}>
-                                <strong>Initial Investment Date:</strong>{" "}
-                                {investmentChain.length > 0
-                                  ? formatDisplayDate(
-                                      investmentChain[0].investmentDate
-                                    )
-                                  : "-"}
-                              </div>
-                              <div style={{ marginTop: 6 }}>
-                                <strong>Initial Invoice:</strong>{" "}
-                                {investmentChain.length > 0
-                                  ? investmentChain[0].invoiceNumber
-                                  : "-"}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {isMergedRecord && (
-                          <div className="note-box" style={{ marginTop: 16 }}>
-                            <strong>Merge Summary</strong>
-                            <div className="report-detail">
-                              <div>
-                                <strong>Merged From Invoices:</strong>{" "}
-                                {mergeSources.length === 0
-                                  ? "-"
-                                  : mergeSources
-                                      .map((item) => item.invoiceNumber)
-                                      .join(" + ")}
-                              </div>
-                              <div style={{ marginTop: 6 }}>
-                                <strong>Initial Investment Dates:</strong>{" "}
-                                {mergeSources.length === 0
-                                  ? "-"
-                                  : mergeSources
-                                      .map(
-                                        (item) =>
-                                          `${item.invoiceNumber} (${formatDisplayDate(
-                                            item.investmentDate
-                                          )})`
-                                      )
-                                      .join(", ")}
-                              </div>
-                              <div style={{ marginTop: 6 }}>
-                                <strong>Source Borrowed Investors:</strong>
-                                <div style={{ marginTop: 6 }}>
-                                  {mergeSources.length === 0 ? (
-                                    <div>-</div>
-                                  ) : (
-                                    mergeSources.map((source) => (
-                                      <div
-                                        key={source.id}
-                                        style={{ marginBottom: 6 }}
-                                      >
-                                        <strong>{source.invoiceNumber}:</strong>{" "}
-                                        {(source.borrowedInvestors || []).length === 0
-                                          ? "No borrowed investors"
-                                          : source.borrowedInvestors
-                                              .map(
-                                                (item) =>
-                                                  `${item.name} (${formatCurrency(
-                                                    item.amount
-                                                  )})`
-                                              )
-                                              .join(", ")}
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {investment.status === "reinvested" && (
-                          <div className="note-box" style={{ marginTop: 16 }}>
-                            Previous invoice moved here after reinvestment.
-                          </div>
-                        )}
-
-                        {investment.status === "merged" && (
-                          <div className="note-box" style={{ marginTop: 16 }}>
-                            Previous invoice moved here after merge.
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="investor-summary">
-                        <strong>Borrowed Investors</strong>
-                        <div style={{ marginTop: 12 }}>
-                          {(investment.borrowedInvestors || []).length === 0 ? (
-                            <div className="muted-text">No borrowed investors</div>
-                          ) : (
-                            investment.borrowedInvestors.map((item) => (
-                              <div key={item.id} className="borrowed-row">
-                                <div>
-                                  <strong>{item.name}</strong>
-                                </div>
-                                <div>{formatCurrency(item.amount)}</div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          </section>
         )}
       </div>
 
       <style jsx>{`
         :global(body) {
           margin: 0;
-          background:
-            radial-gradient(circle at top left, rgba(99, 102, 241, 0.14), transparent 28%),
-            radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 24%),
-            linear-gradient(180deg, #030712 0%, #07111f 45%, #020617 100%);
-          color: #e2e8f0;
+          background: #f6f8fb;
+          color: #0f172a;
           font-family: Inter, Arial, sans-serif;
         }
 
@@ -2288,127 +2295,165 @@ export default function Page() {
 
         .page {
           min-height: 100vh;
-          padding: 32px 18px 50px;
-          position: relative;
-          overflow: hidden;
+          padding: 24px 16px 40px;
         }
 
         .container {
           max-width: 1480px;
           margin: 0 auto;
-          position: relative;
-          z-index: 2;
         }
 
-        .bg-orb {
-          position: fixed;
-          border-radius: 999px;
-          filter: blur(80px);
-          opacity: 0.22;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .orb-1 {
-          width: 260px;
-          height: 260px;
-          background: #22c55e;
-          top: 70px;
-          left: -80px;
-        }
-
-        .orb-2 {
-          width: 320px;
-          height: 320px;
-          background: #6366f1;
-          top: 120px;
-          right: -110px;
-        }
-
-        .orb-3 {
-          width: 240px;
-          height: 240px;
-          background: #a855f7;
-          bottom: 60px;
-          left: 35%;
-        }
-
-        .card {
-          background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.92));
-          border: 1px solid rgba(148, 163, 184, 0.14);
-          border-radius: 24px;
-          padding: 24px;
-          box-shadow:
-            0 20px 60px rgba(0, 0, 0, 0.35),
-            inset 0 1px 0 rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(14px);
-        }
-
-        .hero-card {
+        .hero {
+          background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 28px;
           padding: 28px;
-          background:
-            linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.95)),
-            linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 197, 94, 0.06));
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
         }
 
-        .hero-top {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          align-items: flex-start;
-          flex-wrap: wrap;
-        }
-
-        .eyebrow {
-          display: inline-block;
-          padding: 6px 12px;
+        .hero-tag {
+          display: inline-flex;
+          align-items: center;
+          padding: 8px 12px;
           border-radius: 999px;
+          background: #eff6ff;
+          color: #2563eb;
           font-size: 12px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
-          color: #c7d2fe;
-          background: rgba(99, 102, 241, 0.14);
-          border: 1px solid rgba(99, 102, 241, 0.28);
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
         .header-title {
           margin: 0;
           font-size: 34px;
           line-height: 1.1;
-          color: #f8fafc;
+          color: #0f172a;
           letter-spacing: -0.02em;
         }
 
         .header-subtitle {
           margin: 10px 0 0;
+          color: #64748b;
           font-size: 15px;
-          color: #94a3b8;
+        }
+
+        .tab-row {
+          margin-top: 22px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .tab-button {
+          min-width: 130px;
+          border: 1px solid #dbe3ef;
+          border-radius: 14px;
+          padding: 12px 16px;
+          background: #ffffff;
+          color: #475569;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tab-button:hover {
+          border-color: #bfdbfe;
+          background: #f8fbff;
+        }
+
+        .tab-button.active {
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          color: #ffffff;
+          border-color: #2563eb;
+          box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
+        }
+
+        .top-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+          margin-top: 24px;
+        }
+
+        .overview-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          padding: 20px;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+        }
+
+        .overview-label {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-bottom: 12px;
+        }
+
+        .overview-value {
+          font-size: 24px;
+          line-height: 1.3;
+          font-weight: 800;
+          color: #0f172a;
+          word-break: break-word;
+        }
+
+        .two-column-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+          gap: 24px;
+          margin-top: 24px;
+        }
+
+        .panel {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 28px;
+          padding: 24px;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+        }
+
+        .panel-head,
+        .sub-panel-head,
+        .report-section-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
         }
 
         .section-title {
           margin: 0 0 8px;
-          color: #f8fafc;
-          font-size: 22px;
-          letter-spacing: -0.01em;
+          color: #0f172a;
+          font-size: 24px;
+          letter-spacing: -0.02em;
         }
 
         .section-text {
-          color: #94a3b8;
+          color: #64748b;
           font-size: 14px;
           line-height: 1.6;
         }
 
-        .grid {
-          display: grid;
-          gap: 16px;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        .sub-panel {
+          margin-top: 20px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          padding: 18px;
         }
 
-        .main-grid {
-          grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-          align-items: start;
+        .sub-panel-title {
+          margin: 0;
+          font-size: 18px;
+          color: #0f172a;
         }
 
         .form-grid {
@@ -2417,124 +2462,103 @@ export default function Page() {
           gap: 16px;
         }
 
-        .stats-grid {
+        .mini-stat-grid,
+        .dashboard-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           gap: 14px;
+          margin-top: 20px;
         }
 
-        .dashboard-top .stat-box {
-          min-height: 120px;
-        }
-
-        .stat-box {
-          padding: 18px;
+        .mini-stat-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 20px;
-          border: 1px solid rgba(148, 163, 184, 0.14);
-          background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.52));
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+          padding: 18px;
         }
 
-        .stat-box.premium {
-          background:
-            linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92)),
-            linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 197, 94, 0.06));
-          border: 1px solid rgba(99, 102, 241, 0.16);
-        }
-
-        .stat-label {
+        .mini-stat-label {
           font-size: 12px;
           font-weight: 700;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
-          color: #94a3b8;
+          color: #64748b;
           margin-bottom: 10px;
         }
 
-        .stat-value {
-          font-size: 22px;
-          line-height: 1.3;
-          color: #f8fafc;
-          font-weight: 700;
+        .mini-stat-value {
+          font-size: 20px;
+          line-height: 1.35;
+          font-weight: 800;
+          color: #0f172a;
           word-break: break-word;
         }
 
-        .investor-box,
-        .note-box {
-          margin-top: 20px;
-          border-radius: 22px;
-          border: 1px solid rgba(148, 163, 184, 0.14);
-          background: rgba(15, 23, 42, 0.55);
-          padding: 20px;
-        }
-
-        .investor-head,
-        .list-head,
-        .card-head {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          align-items: center;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-        }
-
-        .investor-item {
+        .borrowed-investor-row {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           gap: 14px;
           padding: 16px;
           margin-bottom: 12px;
           border-radius: 18px;
-          background: rgba(2, 6, 23, 0.38);
-          border: 1px solid rgba(148, 163, 184, 0.12);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
         }
 
-        .btn-row {
+        .selected-summary-card {
+          margin-top: 20px;
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 20px;
+          padding: 18px;
+          color: #1e3a8a;
+        }
+
+        .action-row {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
         }
 
-        .btn-dark,
-        .btn-light {
-          border: none;
+        .primary-button,
+        .secondary-button {
           border-radius: 14px;
           padding: 12px 16px;
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.22s ease;
+          transition: all 0.2s ease;
         }
 
-        .btn-dark {
+        .primary-button {
+          border: none;
           color: #ffffff;
-          background: linear-gradient(135deg, #4f46e5, #7c3aed);
-          box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
         }
 
-        .btn-dark:hover {
+        .primary-button:hover {
           transform: translateY(-1px);
-          box-shadow: 0 16px 34px rgba(79, 70, 229, 0.34);
         }
 
-        .btn-light {
-          color: #e2e8f0;
-          background: rgba(15, 23, 42, 0.78);
-          border: 1px solid rgba(148, 163, 184, 0.18);
+        .secondary-button {
+          border: 1px solid #dbe3ef;
+          background: #ffffff;
+          color: #334155;
         }
 
-        .btn-light:hover {
-          transform: translateY(-1px);
-          background: rgba(30, 41, 59, 0.9);
+        .secondary-button:hover {
+          border-color: #bfdbfe;
+          background: #f8fbff;
         }
 
-        .danger-btn:hover {
-          border-color: rgba(248, 113, 113, 0.35);
-          color: #fecaca;
+        .secondary-button.danger:hover {
+          border-color: #fecaca;
+          background: #fff1f2;
+          color: #b91c1c;
         }
 
-        .full-width-btn {
+        .full-width {
           width: 100%;
         }
 
@@ -2542,42 +2566,39 @@ export default function Page() {
           display: block;
           margin-bottom: 8px;
           font-size: 13px;
-          color: #cbd5e1;
           font-weight: 600;
+          color: #334155;
         }
 
         input {
           width: 100%;
           border-radius: 14px;
-          border: 1px solid rgba(148, 163, 184, 0.16);
-          background: rgba(2, 6, 23, 0.72);
-          color: #f8fafc;
+          border: 1px solid #dbe3ef;
+          background: #ffffff;
+          color: #0f172a;
           padding: 12px 14px;
           font-size: 14px;
           outline: none;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         input::placeholder {
-          color: #64748b;
+          color: #94a3b8;
         }
 
         input:focus {
-          border-color: rgba(99, 102, 241, 0.58);
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
-          background: rgba(2, 6, 23, 0.92);
+          border-color: #60a5fa;
+          box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.14);
         }
 
         input[type="checkbox"] {
           width: 18px;
           height: 18px;
-          accent-color: #6366f1;
+          accent-color: #2563eb;
           cursor: pointer;
         }
 
-        .alert-error,
-        .alert-success,
-        .empty-box {
+        .alert {
           margin-top: 18px;
           padding: 14px 16px;
           border-radius: 16px;
@@ -2585,57 +2606,60 @@ export default function Page() {
           font-weight: 600;
         }
 
-        .alert-error {
-          background: rgba(239, 68, 68, 0.12);
-          border: 1px solid rgba(239, 68, 68, 0.25);
-          color: #fecaca;
+        .alert.error {
+          background: #fff1f2;
+          border: 1px solid #fecdd3;
+          color: #be123c;
         }
 
-        .alert-success {
-          background: rgba(34, 197, 94, 0.12);
-          border: 1px solid rgba(34, 197, 94, 0.25);
-          color: #bbf7d0;
+        .alert.success {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
         }
 
-        .empty-box {
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px dashed rgba(148, 163, 184, 0.2);
-          color: #94a3b8;
+        .empty-state {
+          padding: 18px;
+          border-radius: 18px;
+          background: #f8fafc;
+          border: 1px dashed #cbd5e1;
+          color: #64748b;
           text-align: center;
         }
 
-        .list-card {
-          overflow: hidden;
-        }
-
-        .investment-item {
+        .list-card-item {
           border-radius: 22px;
-          border: 1px solid rgba(148, 163, 184, 0.12);
-          background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(2, 6, 23, 0.78));
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
           padding: 20px;
           margin-bottom: 14px;
           transition: all 0.2s ease;
           cursor: pointer;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
         }
 
-        .investment-item:hover {
-          transform: translateY(-1px);
-          border-color: rgba(99, 102, 241, 0.22);
+        .list-card-item:hover {
+          border-color: #bfdbfe;
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
         }
 
-        .investment-item.selected {
-          border-color: rgba(99, 102, 241, 0.4);
-          box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+        .list-card-item.selected {
+          border-color: #60a5fa;
+          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.14);
         }
 
-        .investment-top {
+        .muted-record {
+          background: #fbfcfe;
+        }
+
+        .list-card-top {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 320px;
           gap: 18px;
           align-items: start;
         }
 
-        .investment-header-row {
+        .item-head-row {
           display: flex;
           gap: 12px;
           justify-content: space-between;
@@ -2643,13 +2667,7 @@ export default function Page() {
           flex-wrap: wrap;
         }
 
-        .invoice-line {
-          margin-top: 14px;
-          margin-bottom: 14px;
-          color: #e2e8f0;
-        }
-
-        .badge {
+        .status-badge {
           display: inline-flex;
           align-items: center;
           padding: 7px 12px;
@@ -2660,91 +2678,249 @@ export default function Page() {
           text-transform: uppercase;
         }
 
-        .meta-grid {
+        .invoice-line {
+          margin-top: 14px;
+          margin-bottom: 14px;
+          color: #334155;
+        }
+
+        .details-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 12px;
+          color: #475569;
           font-size: 14px;
-          color: #cbd5e1;
         }
 
-        .investor-summary {
+        .side-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 20px;
-          background: rgba(2, 6, 23, 0.5);
-          border: 1px solid rgba(148, 163, 184, 0.12);
           padding: 18px;
-          min-height: 100%;
         }
 
-        .borrowed-row {
+        .side-row {
           display: flex;
           justify-content: space-between;
           gap: 12px;
           margin-bottom: 10px;
           font-size: 14px;
-          color: #e2e8f0;
+          color: #334155;
         }
 
         .muted-text {
           font-size: 14px;
-          color: #94a3b8;
+          color: #64748b;
         }
 
-        .mini-form-row {
+        .inline-box {
+          margin-top: 16px;
+          border-radius: 18px;
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          padding: 16px;
+        }
+
+        .inline-form-row {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
           align-items: end;
         }
 
-        .report-detail {
+        .detail-stack {
           margin-top: 10px;
+          display: grid;
+          gap: 8px;
           font-size: 14px;
-          color: #cbd5e1;
+          color: #475569;
+        }
+
+        .report-page {
+          display: block;
+        }
+
+        .report-section {
+          margin-top: 20px;
+        }
+
+        .report-section-title {
+          margin: 0;
+          font-size: 20px;
+          color: #0f172a;
+        }
+
+        .section-count {
+          display: inline-flex;
+          align-items: center;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .flow-summary-list {
+          display: grid;
+          gap: 16px;
+        }
+
+        .flow-summary-card {
+          border: 1px solid #dbeafe;
+          background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+          border-radius: 24px;
+          padding: 20px;
+          box-shadow: 0 12px 30px rgba(37, 99, 235, 0.05);
+        }
+
+        .flow-summary-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .flow-title-block {
+          display: grid;
+          gap: 8px;
+        }
+
+        .flow-title {
+          font-size: 20px;
+          line-height: 1.4;
+          font-weight: 800;
+          color: #0f172a;
+          word-break: break-word;
+        }
+
+        .flow-subtitle {
+          font-size: 14px;
+          color: #64748b;
+        }
+
+        .flow-meta-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+          gap: 12px;
+          margin-top: 18px;
+        }
+
+        .flow-meta-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 14px;
+        }
+
+        .flow-meta-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-bottom: 8px;
+        }
+
+        .flow-meta-value {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0f172a;
+          line-height: 1.4;
+          word-break: break-word;
+        }
+
+        .flow-steps {
+          display: grid;
+          gap: 12px;
+          margin-top: 18px;
+        }
+
+        .flow-step {
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          padding: 14px;
+          border-radius: 18px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+        }
+
+        .flow-step-dot {
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          border-radius: 999px;
+          background: #2563eb;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .flow-step-content {
+          display: grid;
+          gap: 4px;
+        }
+
+        .flow-step-invoice {
+          font-size: 15px;
+          font-weight: 800;
+          color: #0f172a;
+        }
+
+        .flow-step-text {
+          font-size: 14px;
+          color: #64748b;
         }
 
         @media (max-width: 1180px) {
-          .main-grid {
+          .two-column-layout {
             grid-template-columns: 1fr;
           }
 
-          .investment-top {
+          .list-card-top {
             grid-template-columns: 1fr;
-          }
-
-          .investor-summary {
-            width: 100%;
           }
         }
 
         @media (max-width: 768px) {
           .page {
-            padding: 20px 12px 36px;
+            padding: 18px 12px 32px;
           }
 
-          .card,
-          .hero-card {
+          .hero,
+          .panel {
             padding: 18px;
-            border-radius: 20px;
+            border-radius: 22px;
           }
 
           .header-title {
             font-size: 28px;
           }
 
-          .stat-value {
-            font-size: 19px;
+          .overview-value,
+          .mini-stat-value {
+            font-size: 18px;
           }
 
-          .investment-item {
-            padding: 16px;
-          }
-
-          .meta-grid,
+          .top-stats-grid,
+          .dashboard-grid,
+          .mini-stat-grid,
+          .details-grid,
           .form-grid,
-          .stats-grid,
-          .grid {
+          .flow-meta-grid {
             grid-template-columns: 1fr;
+          }
+
+          .flow-title {
+            font-size: 18px;
           }
         }
       `}</style>
