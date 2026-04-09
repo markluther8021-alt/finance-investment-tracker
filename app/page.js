@@ -1844,6 +1844,15 @@ export default function Page() {
               <div>
                 <label>Merged Invoice Number</label>
                 <input
+             <div>
+  <label>Merged Investment Name (Company)</label>
+  <input
+    type="text"
+    value={mergeInvestmentName}
+    onChange={(e) => setMergeInvestmentName(e.target.value)}
+    placeholder="Enter company / investment name"
+  />
+</div>
                   type="text"
                   value={mergeInvoiceNumber}
                   onChange={(e) => setMergeInvoiceNumber(e.target.value)}
