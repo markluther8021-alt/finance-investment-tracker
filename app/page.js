@@ -966,7 +966,7 @@ export default function Page() {
     const reinvestment = {
       id: generateId(),
       invoiceNumber: reinvestInvoiceNumber.trim(),
-      investmentName: `${investment.investmentName} (Reinvested)`,
+      investmentName: getReinvestmentName(investment.invoiceNumber),
       totalAmount: investment.totalAmount,
       borrowedAmount: investment.borrowedAmount,
       selfInvestedAmount: investment.selfInvestedAmount,
