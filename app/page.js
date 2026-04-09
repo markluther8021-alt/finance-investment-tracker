@@ -112,7 +112,20 @@ const combineBorrowedInvestors = (borrowedInvestorGroups) => {
 
   return Array.from(map.values());
 };
+const getReinvestmentName = (name) => {
+  const match = name.match(/\(Reinvested x(\d+)\)$/);
 
+  if (match) {
+    const count = parseInt(match[1], 10) + 1;
+    return name.replace(/\(Reinvested x\d+\)$/, `(Reinvested x${count})`);
+  }
+
+  if (name.includes("(Reinvested)")) {
+    return name.replace("(Reinvested)", "(Reinvested x2)");
+  }
+
+  return `${name} (Reinvested)`;
+};
 export default function Page() {
   const [activeTab, setActiveTab] = useState("investment");
 
