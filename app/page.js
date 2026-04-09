@@ -40,6 +40,21 @@ const formatCurrency = (value) => {
   })}`;
 };
 
+const getReinvestmentName = (name) => {
+  const match = name.match(/\(Reinvested x(\d+)\)$/);
+
+  if (match) {
+    const count = parseInt(match[1], 10) + 1;
+    return name.replace(/\(Reinvested x\d+\)$/, `(Reinvested x${count})`);
+  }
+
+  if (name.includes("(Reinvested)")) {
+    return name.replace("(Reinvested)", "(Reinvested x2)");
+  }
+
+  return `${name} (Reinvested)`;
+};
+
 const getStatusBadgeStyle = (status) => {
   if (status === "active") {
     return {
@@ -112,20 +127,7 @@ const combineBorrowedInvestors = (borrowedInvestorGroups) => {
 
   return Array.from(map.values());
 };
-const getReinvestmentName = (name) => {
-  const match = name.match(/\(Reinvested x(\d+)\)$/);
 
-  if (match) {
-    const count = parseInt(match[1], 10) + 1;
-    return name.replace(/\(Reinvested x\d+\)$/, `(Reinvested x${count})`);
-  }
-
-  if (name.includes("(Reinvested)")) {
-    return name.replace("(Reinvested)", "(Reinvested x2)");
-  }
-
-  return `${name} (Reinvested)`;
-};
 export default function Page() {
   const [activeTab, setActiveTab] = useState("investment");
 
@@ -154,6 +156,7 @@ export default function Page() {
 
   const [mergeSelectionIds, setMergeSelectionIds] = useState([]);
   const [mergeInvoiceNumber, setMergeInvoiceNumber] = useState("");
+  const [mergeInvestmentName, setMergeInvestmentName] = useState("");
   const [mergeInvestmentDate, setMergeInvestmentDate] = useState("");
   const [mergeMaturityDate, setMergeMaturityDate] = useState("");
 
@@ -536,6 +539,7 @@ export default function Page() {
   const resetMergeForm = () => {
     setMergeSelectionIds([]);
     setMergeInvoiceNumber("");
+    setMergeInvestmentName("");
     setMergeInvestmentDate("");
     setMergeMaturityDate("");
   };
@@ -1092,7 +1096,9 @@ export default function Page() {
     const mergedInvestment = {
       id: generateId(),
       invoiceNumber: mergeInvoiceNumber.trim(),
-      investmentName: selectedItems.map((item) => item.invoiceNumber).join(" + "),
+      investmentName:
+        mergeInvestmentName.trim() ||
+        selectedItems.map((item) => item.invoiceNumber).join(" + "),
       totalAmount: mergedTotalAmount,
       borrowedAmount: mergedBorrowedAmount,
       selfInvestedAmount:
@@ -1834,7 +1840,8 @@ export default function Page() {
             <h2 className="section-title">Merge Matured Invoices</h2>
             <p className="section-text">
               Select at least 2 matured invoices. Merge invoice number is manual.
-              Merge investment date is manual. Merge maturity date is manual.
+              Merge investment name is company / investment heading. Merge investment
+              date is manual. Merge maturity date is manual.
             </p>
 
             {error && <div className="alert error">{error}</div>}
@@ -1844,19 +1851,20 @@ export default function Page() {
               <div>
                 <label>Merged Invoice Number</label>
                 <input
-             <div>
-  <label>Merged Investment Name (Company)</label>
-  <input
-    type="text"
-    value={mergeInvestmentName}
-    onChange={(e) => setMergeInvestmentName(e.target.value)}
-    placeholder="Enter company / investment name"
-  />
-</div>
                   type="text"
                   value={mergeInvoiceNumber}
                   onChange={(e) => setMergeInvoiceNumber(e.target.value)}
                   placeholder="Enter merged invoice number"
+                />
+              </div>
+
+              <div>
+                <label>Merged Investment Name (Company / Heading)</label>
+                <input
+                  type="text"
+                  value={mergeInvestmentName}
+                  onChange={(e) => setMergeInvestmentName(e.target.value)}
+                  placeholder="Enter company / investment name"
                 />
               </div>
 
